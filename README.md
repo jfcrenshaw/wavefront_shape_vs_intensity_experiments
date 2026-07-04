@@ -12,13 +12,16 @@ model, we measure how much of each Zernike mode lives in shape vs intensity.
 
 ## What's here
 
-```
+```text
 analysis/
   config.py            all physical constants and experiment knobs
   sim.py               the simulate-one-donut-and-fit-it-back engine
+  plotutils.py         shared plotting helpers (all-terms heatmap)
+  plot_donuts.py       -> figures/example_donuts.png (gallery of simulated donuts)
   study_sparsity.py    -> figures/zk_estimates.pdf, shape_degeneracy.pdf
-  study_obscuration.py -> figures/coma_vs_obscuration.png, spherical_vs_obscuration.png
-  study_vignetting.py  -> figures/vignetting.png   (new study)
+  study_obscuration.py -> figures/coma_vs_obscuration.png, spherical_vs_obscuration.png,
+                          all_terms_vs_obscuration.png
+  study_vignetting.py  -> figures/vignetting.png, all_terms_vs_vignetting.png  (new study)
 danish/                danish as a git submodule, with our shape-only patch
 figures/               output figures
 ```

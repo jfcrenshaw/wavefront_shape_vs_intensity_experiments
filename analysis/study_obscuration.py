@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 
 import config as C
 import sim
+import plotutils
 
 
 def sweep(eps_values, n_mc, seed):
@@ -109,6 +110,12 @@ def main():
                 (22, "Z22 (secondary spherical)", "C1", False)],
         title="Spherical estimation vs central obscuration",
         fname="spherical_vs_obscuration.png",
+    )
+    plotutils.all_terms_heatmap(
+        eps_values, sig,
+        xlabel=r"central obscuration $\varepsilon = R_{\rm inner}/R_{\rm outer}$",
+        title="All modes vs central obscuration",
+        out=C.FIGDIR / "all_terms_vs_obscuration.png",
     )
 
 

@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 
 import config as C
 import sim
+import plotutils
 
 
 def vignette_fraction(pupil_r_outer):
@@ -102,6 +103,7 @@ def main():
     med = np.median(sig / sig[0], axis=1)
     ax.plot(frac, med, color="k", lw=2, alpha=0.5, label="median (all modes)")
     ax.axhline(1.0, color="gray", lw=0.6)
+    ax.set_yscale("log")   # Z11 spikes by ~100x, so log keeps everything legible
     ax.set_xlabel("vignetted fraction of pupil area")
     ax.set_ylabel("relative error (normalized to no vignetting)")
     ax.set_title("Wavefront estimation vs vignetting (toy, field center)")
@@ -111,6 +113,13 @@ def main():
     fig.savefig(out, dpi=150)
     print(f"wrote {out}")
     plt.close(fig)
+
+    plotutils.all_terms_heatmap(
+        frac, sig,
+        xlabel="vignetted fraction of pupil area",
+        title="All modes vs vignetting (toy, field center)",
+        out=C.FIGDIR / "all_terms_vs_vignetting.png",
+    )
 
 
 if __name__ == "__main__":
