@@ -10,7 +10,12 @@ Reproduces ``coma_vs_obscuration.png`` and ``spherical_vs_obscuration.png``:
 increasing the obscuration degrades coma (especially secondary coma) but
 improves primary spherical up to epsilon ~ 0.5.
 
-Run:  python study_obscuration.py [--n-mc N] [--quick]
+The simulation and the plotting are separate: a normal run simulates, caches
+the results to ``data/obscuration.npz``, and then plots; ``--plot-only`` skips
+the simulation and re-draws the figures from that cache (for quick cosmetic
+tweaks).
+
+Run:  python study_obscuration.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
@@ -92,13 +97,29 @@ def main():
     p.add_argument("--jobs", type=int, default=sim.default_jobs(),
                    help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
+    p.add_argument("--plot-only", action="store_true",
+                   help="skip the simulation; re-draw plots from saved data")
     args = p.parse_args()
-    n_mc = 8 if args.quick else args.n_mc
-    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
-    eps_values = np.linspace(0.0, 0.7, 8)
-    sig = sweep(eps_values, n_mc, C.SEED, args.jobs)
+    C.DATADIR.mkdir(exist_ok=True)
+    datafile = C.DATADIR / "obscuration.npz"
+
+    # Simulate and cache, unless we were asked to only re-draw the plots.
+    if args.plot_only:
+        if not datafile.exists():
+            raise SystemExit(f"no saved data at {datafile}; run without "
+                             "--plot-only first")
+    else:
+        n_mc = 8 if args.quick else args.n_mc
+        print(f"running with n_mc={n_mc}, jobs={args.jobs}")
+        eps_values = np.linspace(0.0, 0.7, 8)
+        sig = sweep(eps_values, n_mc, C.SEED, args.jobs)
+        np.savez(datafile, eps_values=eps_values, sig=sig)
+        print(f"wrote {datafile}")
+
+    data = np.load(datafile)
+    eps_values, sig = data["eps_values"], data["sig"]
 
     plot_family(
         eps_values, sig,

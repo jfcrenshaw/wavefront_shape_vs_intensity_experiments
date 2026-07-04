@@ -13,7 +13,12 @@ into the pupil from the inside, here from the outside.  We expect estimation of
 modes with power near the outer edge (spherical, high-order modes) to degrade as
 vignetting increases.  Errors are normalized to the no-vignetting case per mode.
 
-Run:  python study_vignetting.py [--n-mc N] [--quick]
+The simulation and the plotting are separate: a normal run simulates, caches
+the results to ``data/vignetting.npz``, and then plots; ``--plot-only`` skips
+the simulation and re-draws the figures from that cache (for quick cosmetic
+tweaks).
+
+Run:  python study_vignetting.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
@@ -82,16 +87,32 @@ def main():
     p.add_argument("--jobs", type=int, default=sim.default_jobs(),
                    help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
+    p.add_argument("--plot-only", action="store_true",
+                   help="skip the simulation; re-draw plots from saved data")
     args = p.parse_args()
-    n_mc = 8 if args.quick else args.n_mc
-    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
-    # Sweep the illuminated outer radius from the full aperture inward.  The
-    # first entry (R_OUTER) is the no-vignetting reference used for normalization.
-    pupil_radii = np.linspace(C.R_OUTER, 0.75 * C.R_OUTER, 8)
-    frac = np.array([vignette_fraction(r) for r in pupil_radii])
-    sig = sweep(pupil_radii, n_mc, C.SEED, args.jobs)
+    C.DATADIR.mkdir(exist_ok=True)
+    datafile = C.DATADIR / "vignetting.npz"
+
+    # Simulate and cache, unless we were asked to only re-draw the plots.
+    if args.plot_only:
+        if not datafile.exists():
+            raise SystemExit(f"no saved data at {datafile}; run without "
+                             "--plot-only first")
+    else:
+        n_mc = 8 if args.quick else args.n_mc
+        print(f"running with n_mc={n_mc}, jobs={args.jobs}")
+        # Sweep the illuminated outer radius from the full aperture inward.  The
+        # first entry (R_OUTER) is the no-vignetting reference used for normalization.
+        pupil_radii = np.linspace(C.R_OUTER, 0.75 * C.R_OUTER, 8)
+        frac = np.array([vignette_fraction(r) for r in pupil_radii])
+        sig = sweep(pupil_radii, n_mc, C.SEED, args.jobs)
+        np.savez(datafile, frac=frac, sig=sig)
+        print(f"wrote {datafile}")
+
+    data = np.load(datafile)
+    frac, sig = data["frac"], data["sig"]
 
     # Highlight coma and spherical (same families as the obscuration study), plus
     # the median over all dense modes as a summary curve.

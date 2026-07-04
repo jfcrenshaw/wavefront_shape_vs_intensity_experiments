@@ -18,6 +18,11 @@ import numpy as np
 # Where study scripts write their figures (repo-root ``figures/``).
 FIGDIR = Path(__file__).resolve().parent.parent / "figures"
 
+# Where study scripts cache their simulation outputs (repo-root ``data/``).
+# Each study saves its Monte-Carlo results here so the plots can be re-drawn
+# with ``--plot-only`` without re-running the (slow) simulations.
+DATADIR = Path(__file__).resolve().parent.parent / "data"
+
 # --- Telescope geometry (Rubin-like) --------------------------------------
 # Entrance-pupil outer radius and the nominal central obscuration.
 R_OUTER = 4.18            # meters (Rubin primary mirror rim)
@@ -27,9 +32,9 @@ FOCAL_LENGTH = 10.31      # meters
 PIXEL_SCALE = 10e-6       # meters per pixel (10 micron)
 
 # --- Image + rendering ----------------------------------------------------
-NPIX = 181                # odd; donut is ~110 px across for the defocus below
+NPIX = 181                # odd; donut is ~133 px across for the defocus below
 NRAD = 35                 # radial rings in the triangle mesh (accuracy vs speed)
-DEFOCUS_Z4 = 20e-6        # meters of Z4; sets the donut size (~110 px)
+DEFOCUS_Z4 = 24.3e-6      # meters of Z4; sets the donut size (133 px, matching Rubin)
 FWHM = 0.7                # atmospheric seeing FWHM, arcsec
 
 # --- Reference wavelength (for reporting only) ----------------------------
@@ -75,7 +80,6 @@ DENSE_TERMS = list(range(4, JMAX + 1))
 #   m=0 spherical   Z11
 #   m=4 tetrafoil   Z14, Z15
 #   m=5 pentafoil   Z20, Z21
-# NOTE: confirm this list against the nu-tables in Sections 3-5 of the paper.
 SPARSE_TERMS = [4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 20, 21]
 
 # --- Modes highlighted in the obscuration / vignetting studies ------------

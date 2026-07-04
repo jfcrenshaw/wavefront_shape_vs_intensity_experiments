@@ -10,7 +10,11 @@ Reproduces two figures from the paper:
   pattern (approaching a caustic), illustrating why fitting high-order modes
   from shape alone is dangerous.
 
-Run:  python study_sparsity.py [--n-mc N] [--quick]
+The simulation and the plotting are separate: a normal run simulates, caches
+the results to ``data/sparsity.npz``, and then plots; ``--plot-only`` skips the
+simulation and re-draws the figures from that cache (for quick cosmetic tweaks).
+
+Run:  python study_sparsity.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
@@ -48,15 +52,31 @@ def relative_spread(z_terms, n_mc, seed, n_jobs):
     return res_shape.std(axis=0) / C.INJECT_SIGMA, res_full.std(axis=0) / C.INJECT_SIGMA
 
 
-def plot_estimates(n_mc, seed, n_jobs):
-    """Make the two-panel sparse/dense comparison figure."""
+def simulate(n_mc, seed, n_jobs):
+    """Run the Monte-Carlo spreads for both the sparse and dense fits.
+
+    Returns
+    -------
+    dict
+        The four per-mode error arrays (sparse/dense x shape/full), keyed for
+        saving with ``np.savez`` and reloading in :func:`plot_estimates`.
+    """
+    sparse_shape, sparse_full = relative_spread(C.SPARSE_TERMS, n_mc, seed, n_jobs)
+    dense_shape, dense_full = relative_spread(C.DENSE_TERMS, n_mc, seed, n_jobs)
+    return dict(sparse_shape=sparse_shape, sparse_full=sparse_full,
+                dense_shape=dense_shape, dense_full=dense_full)
+
+
+def plot_estimates(data):
+    """Make the two-panel sparse/dense comparison figure from saved arrays."""
     fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharey=True)
-    for ax, (terms, title) in zip(
+    for ax, (terms, sig_shape, sig_full, title) in zip(
         axes,
-        [(C.SPARSE_TERMS, "Sparse fit (lowest-$\\nu$ detectable modes)"),
-         (C.DENSE_TERMS, "Dense fit (all Noll indices 4-22)")],
+        [(C.SPARSE_TERMS, data["sparse_shape"], data["sparse_full"],
+          "Sparse fit (lowest-$\\nu$ detectable modes)"),
+         (C.DENSE_TERMS, data["dense_shape"], data["dense_full"],
+          "Dense fit (all Noll indices 4-22)")],
     ):
-        sig_shape, sig_full = relative_spread(terms, n_mc, seed, n_jobs)
         x = np.arange(len(terms))
         # Vertical 1-sigma lines centered on zero, offset for the two modes.
         ax.vlines(x - 0.12, -sig_shape, sig_shape, color="C3", lw=4,
@@ -80,13 +100,19 @@ def plot_estimates(n_mc, seed, n_jobs):
     plt.close(fig)
 
 
-def plot_degeneracy(seed):
-    """Find and plot a shape degeneracy from a dense shape-only fit.
+def find_degeneracy(seed):
+    """Find a shape degeneracy from a dense shape-only fit.
 
     We fit several random targets with the shape-only model, then render each
     best-fit wavefront through the *full* (intensity) renderer.  The case whose
     full render differs most from the target -- while the shapes still match --
     is the clearest illustration of a shape/intensity degeneracy.
+
+    Returns
+    -------
+    img_true, img_fit : ndarray
+        The target donut and the shape-only best-fit donut, both rendered with
+        full intensity, for :func:`plot_degeneracy`.
     """
     fac_shape = sim.make_factory(surface_brightness=False)
     fac_full = sim.make_factory(surface_brightness=True)
@@ -110,6 +136,11 @@ def plot_degeneracy(seed):
             best = (score, img_true, img_fit)
 
     _, img_true, img_fit = best
+    return img_true, img_fit
+
+
+def plot_degeneracy(img_true, img_fit):
+    """Plot the target and shape-only best-fit donuts side by side."""
     fig, axes = plt.subplots(1, 2, figsize=(8, 4))
     for ax, img, title in zip(axes, [img_true, img_fit],
                               ["Target (shape + intensity)",
@@ -130,13 +161,30 @@ def main():
     p.add_argument("--jobs", type=int, default=sim.default_jobs(),
                    help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
+    p.add_argument("--plot-only", action="store_true",
+                   help="skip the simulation; re-draw plots from saved data")
     args = p.parse_args()
-    n_mc = 8 if args.quick else args.n_mc
-    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
-    plot_estimates(n_mc, C.SEED, args.jobs)
-    plot_degeneracy(C.SEED + 1)
+    C.DATADIR.mkdir(exist_ok=True)
+    datafile = C.DATADIR / "sparsity.npz"
+
+    # Simulate and cache, unless we were asked to only re-draw the plots.
+    if args.plot_only:
+        if not datafile.exists():
+            raise SystemExit(f"no saved data at {datafile}; run without "
+                             "--plot-only first")
+    else:
+        n_mc = 8 if args.quick else args.n_mc
+        print(f"running with n_mc={n_mc}, jobs={args.jobs}")
+        spreads = simulate(n_mc, C.SEED, args.jobs)
+        img_true, img_fit = find_degeneracy(C.SEED + 1)
+        np.savez(datafile, img_true=img_true, img_fit=img_fit, **spreads)
+        print(f"wrote {datafile}")
+
+    data = np.load(datafile)
+    plot_estimates(data)
+    plot_degeneracy(data["img_true"], data["img_fit"])
 
 
 if __name__ == "__main__":

@@ -5,3 +5,6 @@ __pycache__/
 # Generated figures (regenerate with the study scripts)
 figures/*.pdf
 figures/*.png
+
+# Cached simulation outputs (regenerate by running a study without --plot-only)
+data/*.npz

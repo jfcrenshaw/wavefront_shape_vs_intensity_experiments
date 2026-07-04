@@ -23,6 +23,7 @@ analysis/
                           all_terms_vs_obscuration.png
   study_vignetting.py  -> figures/vignetting.png, all_terms_vs_vignetting.png  (new study)
 danish/                danish as a git submodule, with our shape-only patch
+data/                  cached simulation outputs (*.npz; see "Running" below)
 figures/               output figures
 ```
 
@@ -69,8 +70,23 @@ python study_vignetting.py
 python plot_donuts.py         # instant; renders the donut gallery
 ```
 
-Each script accepts:
+Simulation and plotting are separated so you can tweak a figure without paying
+for the Monte-Carlo again.  Each study script (`study_sparsity.py`,
+`study_obscuration.py`, `study_vignetting.py`) runs the simulation, caches the
+results to `data/<study>.npz`, and then draws the figures.  Once that cache
+exists, re-run with `--plot-only` to skip straight to the plotting:
 
+```bash
+python study_obscuration.py             # simulate, cache to data/, then plot
+python study_obscuration.py --plot-only # instant: re-draw from data/obscuration.npz
+```
+
+(`plot_donuts.py` renders directly and needs no cache — it does no Monte-Carlo.)
+
+Each study script accepts:
+
+- `--plot-only` -- skip the simulation and re-draw the figures from the cached
+  `data/<study>.npz` (errors out if the cache does not exist yet).
 - `--n-mc N` -- Monte-Carlo realizations per condition (raise for
   publication-quality figures; the `config.py` default is a compromise).
 - `--jobs J` -- number of worker processes.  The Monte-Carlo trials are
