@@ -22,7 +22,7 @@ import config as C
 import sim
 
 
-def relative_spread(z_terms, n_mc, seed):
+def relative_spread(z_terms, n_mc, seed, n_jobs):
     """Return the 1-sigma relative error per mode for shape-only and full fits.
 
     Parameters
@@ -33,20 +33,22 @@ def relative_spread(z_terms, n_mc, seed):
         Number of Monte-Carlo realizations.
     seed : int
         Base random seed (shared by both modes so they see the same draws).
+    n_jobs : int
+        Number of worker processes.
 
     Returns
     -------
     sig_shape, sig_full : ndarray
         Standard deviation of ``(z_fit - z_true) / INJECT_SIGMA`` per mode.
     """
-    fac_full = sim.make_factory(surface_brightness=True)
-    fac_shape = sim.make_factory(surface_brightness=False)
-    res_full = sim.monte_carlo(z_terms, fac_full, n_mc=n_mc, seed=seed)
-    res_shape = sim.monte_carlo(z_terms, fac_shape, n_mc=n_mc, seed=seed)
+    res_full = sim.monte_carlo(z_terms, dict(surface_brightness=True),
+                               n_mc=n_mc, seed=seed, n_jobs=n_jobs)
+    res_shape = sim.monte_carlo(z_terms, dict(surface_brightness=False),
+                                n_mc=n_mc, seed=seed, n_jobs=n_jobs)
     return res_shape.std(axis=0) / C.INJECT_SIGMA, res_full.std(axis=0) / C.INJECT_SIGMA
 
 
-def plot_estimates(n_mc, seed):
+def plot_estimates(n_mc, seed, n_jobs):
     """Make the two-panel sparse/dense comparison figure."""
     fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharey=True)
     for ax, (terms, title) in zip(
@@ -54,7 +56,7 @@ def plot_estimates(n_mc, seed):
         [(C.SPARSE_TERMS, "Sparse fit (lowest-$\\nu$ detectable modes)"),
          (C.DENSE_TERMS, "Dense fit (all Noll indices 4-22)")],
     ):
-        sig_shape, sig_full = relative_spread(terms, n_mc, seed)
+        sig_shape, sig_full = relative_spread(terms, n_mc, seed, n_jobs)
         x = np.arange(len(terms))
         # Vertical 1-sigma lines centered on zero, offset for the two modes.
         ax.vlines(x - 0.12, -sig_shape, sig_shape, color="C3", lw=4,
@@ -125,12 +127,15 @@ def plot_degeneracy(seed):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--n-mc", type=int, default=C.N_MC)
+    p.add_argument("--jobs", type=int, default=sim.default_jobs(),
+                   help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
     args = p.parse_args()
     n_mc = 8 if args.quick else args.n_mc
+    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
-    plot_estimates(n_mc, C.SEED)
+    plot_estimates(n_mc, C.SEED, args.jobs)
     plot_degeneracy(C.SEED + 1)
 
 

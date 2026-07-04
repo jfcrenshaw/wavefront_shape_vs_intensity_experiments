@@ -23,7 +23,7 @@ import sim
 import plotutils
 
 
-def sweep(eps_values, n_mc, seed):
+def sweep(eps_values, n_mc, seed, n_jobs):
     """Return per-mode 1-sigma error at each obscuration, for all dense modes.
 
     Parameters
@@ -34,6 +34,8 @@ def sweep(eps_values, n_mc, seed):
         Monte-Carlo realizations per obscuration.
     seed : int
         Base random seed (shared across obscurations).
+    n_jobs : int
+        Number of worker processes.
 
     Returns
     -------
@@ -43,9 +45,8 @@ def sweep(eps_values, n_mc, seed):
     sig = np.empty((len(eps_values), len(C.DENSE_TERMS)))
     for i, eps in enumerate(eps_values):
         r_in = eps * C.R_OUTER
-        fac = sim.make_factory(surface_brightness=True,
-                               zk_r_inner=r_in, pupil_r_inner=r_in)
-        res = sim.monte_carlo(C.DENSE_TERMS, fac, n_mc=n_mc, seed=seed)
+        kwargs = dict(surface_brightness=True, zk_r_inner=r_in, pupil_r_inner=r_in)
+        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed, n_jobs=n_jobs)
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  eps={eps:.2f} done")
     return sig
@@ -87,13 +88,16 @@ def plot_family(eps_values, sig, styles, title, fname):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--n-mc", type=int, default=C.N_MC)
+    p.add_argument("--jobs", type=int, default=sim.default_jobs(),
+                   help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
     args = p.parse_args()
     n_mc = 8 if args.quick else args.n_mc
+    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
     eps_values = np.linspace(0.0, 0.7, 8)
-    sig = sweep(eps_values, n_mc, C.SEED)
+    sig = sweep(eps_values, n_mc, C.SEED, args.jobs)
 
     plot_family(
         eps_values, sig,

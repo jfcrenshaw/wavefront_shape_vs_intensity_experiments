@@ -44,7 +44,7 @@ def vignette_fraction(pupil_r_outer):
     return (full - kept) / full
 
 
-def sweep(pupil_radii, n_mc, seed):
+def sweep(pupil_radii, n_mc, seed, n_jobs):
     """Return per-mode 1-sigma error at each outer pupil radius (dense fit).
 
     Parameters
@@ -55,6 +55,8 @@ def sweep(pupil_radii, n_mc, seed):
         Monte-Carlo realizations per radius.
     seed : int
         Base random seed (shared across radii).
+    n_jobs : int
+        Number of worker processes.
 
     Returns
     -------
@@ -65,10 +67,9 @@ def sweep(pupil_radii, n_mc, seed):
     for i, pro in enumerate(pupil_radii):
         # Zernike normalization stays on the full aperture; only the
         # illuminated outer edge shrinks.  Central obscuration held at Rubin.
-        fac = sim.make_factory(surface_brightness=True,
-                               zk_r_inner=C.R_INNER, pupil_r_outer=pro,
-                               pupil_r_inner=C.R_INNER)
-        res = sim.monte_carlo(C.DENSE_TERMS, fac, n_mc=n_mc, seed=seed)
+        kwargs = dict(surface_brightness=True, zk_r_inner=C.R_INNER,
+                      pupil_r_outer=pro, pupil_r_inner=C.R_INNER)
+        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed, n_jobs=n_jobs)
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  vignette fraction={vignette_fraction(pro):.2f} done")
     return sig
@@ -77,16 +78,19 @@ def sweep(pupil_radii, n_mc, seed):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--n-mc", type=int, default=C.N_MC)
+    p.add_argument("--jobs", type=int, default=sim.default_jobs(),
+                   help="worker processes (default: performance-core count)")
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
     args = p.parse_args()
     n_mc = 8 if args.quick else args.n_mc
+    print(f"running with n_mc={n_mc}, jobs={args.jobs}")
 
     C.FIGDIR.mkdir(exist_ok=True)
     # Sweep the illuminated outer radius from the full aperture inward.  The
     # first entry (R_OUTER) is the no-vignetting reference used for normalization.
     pupil_radii = np.linspace(C.R_OUTER, 0.75 * C.R_OUTER, 8)
     frac = np.array([vignette_fraction(r) for r in pupil_radii])
-    sig = sweep(pupil_radii, n_mc, C.SEED)
+    sig = sweep(pupil_radii, n_mc, C.SEED, args.jobs)
 
     # Highlight coma and spherical (same families as the obscuration study), plus
     # the median over all dense modes as a summary curve.

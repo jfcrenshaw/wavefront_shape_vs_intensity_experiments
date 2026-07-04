@@ -66,11 +66,25 @@ cd analysis
 python study_sparsity.py      # add --quick for a fast, low-statistics preview
 python study_obscuration.py
 python study_vignetting.py
+python plot_donuts.py         # instant; renders the donut gallery
 ```
 
-Each script accepts `--n-mc N` (Monte-Carlo realizations per condition) and
-`--quick`.  The default `N_MC` in `config.py` is a compromise; raise it for
-publication-quality figures.
+Each script accepts:
+
+- `--n-mc N` -- Monte-Carlo realizations per condition (raise for
+  publication-quality figures; the `config.py` default is a compromise).
+- `--jobs J` -- number of worker processes.  The Monte-Carlo trials are
+  embarrassingly parallel, so this scales nearly linearly.  The default is the
+  number of performance cores (8 on an Apple M1 Max); pass `--jobs 1` to force
+  serial.  Results are identical regardless of `--jobs` (the random draws are
+  fixed up front), so parallelism only changes wall-clock time.
+- `--quick` -- fast, low-statistics preview.
+
+A full run at `--n-mc 200 --jobs 8` takes a few minutes per study.
+
+Because multiprocessing uses the "spawn" start method on macOS, always run these
+as scripts (they guard the entry point with `if __name__ == "__main__"`); do not
+call `monte_carlo(..., n_jobs>1)` from an unguarded top-level context.
 
 ## Key methodological choices (see `config.py`)
 
