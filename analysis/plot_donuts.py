@@ -6,6 +6,9 @@ both full (shape + intensity) and shape-only rendering.  This is purely
 illustrative -- the single-mode amplitudes here are larger than the Monte-Carlo
 injection sigma so the shape/intensity effects are visible by eye.
 
+Also renders a compact gallery showing how the donut changes across the
+central-obscuration and asymmetric-vignetting sweeps.
+
 Run:  python plot_donuts.py
 """
 
@@ -29,11 +32,54 @@ CASES = [
     ("+ 2nd coma (Z16)", 16),
 ]
 
+N_GEOMETRY_COLS = 5
+GEOMETRY_CROP_HALF = C.NPIX // 2
+
 
 def crop(img, half=70):
     """Center-crop a square image to +/- ``half`` pixels for display."""
     c = img.shape[0] // 2
     return img[c - half:c + half + 1, c - half:c + half + 1]
+
+
+def plot_geometry_sweep():
+    """Plot example donuts across the obscuration and vignetting sweeps."""
+    eps_values = np.linspace(0.0, 0.7, N_GEOMETRY_COLS)
+    x_edges = np.linspace(C.R_OUTER, -0.4 * C.R_OUTER, N_GEOMETRY_COLS)
+    z_ref = sim.make_reference()
+
+    fig, axes = plt.subplots(2, N_GEOMETRY_COLS, figsize=(10, 4.2))
+    for col, eps in enumerate(eps_values):
+        r_in = eps * C.R_OUTER
+        z_obsc = sim.make_reference(defocus=sim.fixed_diameter_defocus(r_in))
+        fac = sim.make_factory(surface_brightness=True, zk_r_inner=r_in,
+                               pupil_r_inner=r_in)
+        ax = axes[0, col]
+        ax.imshow(crop(fac.image(aberrations=z_obsc, npix=C.NPIX),
+                       half=GEOMETRY_CROP_HALF),
+                  origin="lower", cmap="magma")
+        ax.set_title(f"$\\varepsilon$={eps:.2f}", fontsize=10)
+
+    for col, x_edge in enumerate(x_edges):
+        frac = sim.vignette_fraction(x_edge)
+        fac = sim.make_factory(surface_brightness=True, vignette_x_edge=x_edge)
+        ax = axes[1, col]
+        ax.imshow(crop(fac.image(aberrations=z_ref, npix=C.NPIX),
+                       half=GEOMETRY_CROP_HALF),
+                  origin="lower", cmap="magma")
+        ax.set_title(f"$f_{{\\rm vig}}$={frac:.2f}", fontsize=10)
+
+    for ax in axes.flat:
+        ax.set_xticks([])
+        ax.set_yticks([])
+    axes[0, 0].set_ylabel("central\nobscuration", fontsize=10)
+    axes[1, 0].set_ylabel("asymmetric\nvignetting", fontsize=10)
+    fig.suptitle("Donut changes across pupil-geometry sweeps", fontsize=12)
+    fig.tight_layout()
+    out = C.FIGDIR / "geometry_sweep_donuts.png"
+    fig.savefig(out, dpi=150)
+    print(f"wrote {out}")
+    plt.close(fig)
 
 
 def main():
@@ -70,6 +116,7 @@ def main():
     fig.savefig(out, dpi=150)
     print(f"wrote {out}")
     plt.close(fig)
+    plot_geometry_sweep()
 
 
 def _add(z_ref, idx, amp):

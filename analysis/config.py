@@ -32,9 +32,9 @@ FOCAL_LENGTH = 10.31      # meters
 PIXEL_SCALE = 10e-6       # meters per pixel (10 micron)
 
 # --- Image + rendering ----------------------------------------------------
-NPIX = 181                # odd; donut is ~133 px across for the defocus below
+NPIX = 181                # odd; Rubin-nominal donut is ~133 px across
 NRAD = 35                 # radial rings in the triangle mesh (accuracy vs speed)
-DEFOCUS_Z4 = 24.3e-6      # meters of Z4; sets the donut size (133 px, matching Rubin)
+DEFOCUS_Z4 = 24.3e-6      # meters of Z4 at EPS_RUBIN; sets the donut size
 FWHM = 0.7                # atmospheric seeing FWHM, arcsec
 
 # --- Reference wavelength (for reporting only) ----------------------------
@@ -62,6 +62,23 @@ COUNTS_PER_PIX = 2000.0
 INJECT_SIGMA = 50e-9      # meters RMS per mode (~0.067 waves at 750 nm)
 N_MC = 50                 # realizations per condition (raise for final figures)
 SEED = 20260704
+
+# --- Uncertainty-aware heatmap display -----------------------------------
+# All-mode heatmaps color the physical effect size, log10(error / fiducial).
+# Cells are muted unless the bootstrap confidence interval excludes zero and
+# the effect is at least this large.  A ratio of 1.20 means "show only changes
+# of roughly 20% or more" in either direction on the log scale.
+HEATMAP_BOOTSTRAP_CONFIDENCE = 0.95
+HEATMAP_MIN_ERROR_RATIO = 1.20
+HEATMAP_BOOTSTRAP_SAMPLES = 1000
+HEATMAP_BOOTSTRAP_SEED = SEED + 1
+
+# Line-plot error bars show bootstrap intervals on error / fiducial error.
+# A 68% interval is close to a 1-sigma visual error bar and keeps the figure
+# readable; raise to 0.95 for publication-style confidence intervals.
+LINE_PLOT_BOOTSTRAP_CONFIDENCE = 0.68
+LINE_PLOT_BOOTSTRAP_SAMPLES = 1000
+LINE_PLOT_BOOTSTRAP_SEED = SEED + 2
 
 # --- Highest Noll index we ever touch (defines z_ref padding length) ------
 JMAX = 22

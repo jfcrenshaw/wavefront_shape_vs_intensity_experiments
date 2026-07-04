@@ -17,7 +17,8 @@ analysis/
   config.py            all physical constants and experiment knobs
   sim.py               the simulate-one-donut-and-fit-it-back engine
   plotutils.py         shared plotting helpers (all-terms heatmap)
-  plot_donuts.py       -> figures/example_donuts.png (gallery of simulated donuts)
+  plot_donuts.py       -> figures/example_donuts.png, geometry_sweep_donuts.png
+                          (galleries of simulated donuts)
   study_sparsity.py    -> figures/zk_estimates.pdf, shape_degeneracy.pdf
   study_obscuration.py -> figures/coma_vs_obscuration.png, spherical_vs_obscuration.png,
                           all_terms_vs_obscuration.png
@@ -88,7 +89,9 @@ Each study script accepts:
 - `--plot-only` -- skip the simulation and re-draw the figures from the cached
   `data/<study>.npz` (errors out if the cache does not exist yet).
 - `--n-mc N` -- Monte-Carlo realizations per condition (raise for
-  publication-quality figures; the `config.py` default is a compromise).
+  publication-quality figures; the `config.py` default is a compromise). The
+  obscuration and vignetting plots need at least 2 trials for bootstrap error
+  bars.
 - `--jobs J` -- number of worker processes.  The Monte-Carlo trials are
   embarrassingly parallel, so this scales nearly linearly.  The default is the
   number of performance cores (8 on an Apple M1 Max); pass `--jobs 1` to force
@@ -108,6 +111,11 @@ call `monte_carlo(..., n_jobs>1)` from an unguarded top-level context.
   total flux, so `sim.fit_one` rescales the flux to a fixed total (`FLUX`).
   This keeps the effective signal-to-noise identical between the two modes — the
   comparison is about *information*, not photon budget.
+- **Fixed donut diameter in the obscuration sweep.** Changing the central
+  obscuration changes the annular-Zernike normalization.  To avoid changing the
+  physical defocus in this toy setup, `study_obscuration.py` rescales the
+  reference `Z4` coefficient by `(1 - epsilon**2) / (1 - EPS_RUBIN**2)`, keeping
+  the outer donut diameter fixed while only the hole changes.
 - **Noise.** High flux + tiny sky, so photon noise is negligible; the
   Monte-Carlo spread we plot comes from drawing different true perturbations,
   not from noise. The small noise only keeps the optimizer well behaved.

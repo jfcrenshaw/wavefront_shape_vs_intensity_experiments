@@ -6,7 +6,7 @@ even near caustics, and it is API-compatible with the fitter.  The same factory
 generates the "truth" donut and serves as the fit model, so truth and model use
 one identical forward operator -- exactly the comparison the paper makes.
 
-The single knob that separates the two experiments is ``surface_brightness``:
+The shape-vs-intensity comparison is controlled by ``surface_brightness``:
 
 * ``True``  -> full shape + intensity information (physical surface brightness).
 * ``False`` -> shape only (flat-topped donut, edge pixels weighted by coverage).
@@ -16,6 +16,7 @@ Both truth and model use the *same* value, so a shape-only run answers
 """
 
 import os
+from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
@@ -23,6 +24,95 @@ from scipy.optimize import least_squares
 import danish
 
 import config as C
+
+
+class VignettedTriangleFactory(danish.DonutTriangleFactory):
+    """Triangle factory with an extra straight-edge vignetting cut.
+
+    Real vignetting is *asymmetric*: it eats into the pupil from one side and
+    leaves a nearly straight edge, not a uniform shrink of the outer radius.
+    We keep the half-plane ``u <= vignette_x_edge`` illuminated and remove the
+    rest of the pupil.
+
+    The Zernike normalization and nominal pupil radii are left untouched (the
+    outer wavefront still physically exists and sets the flux normalization);
+    only illuminated triangles are removed.
+
+    Parameters
+    ----------
+    vignette_x_edge : float
+        Location of the vertical vignetting edge in pupil ``u`` coordinates,
+        in meters.  Points with ``u > vignette_x_edge`` are removed.
+    **kwargs
+        Forwarded to :class:`danish.DonutTriangleFactory`.
+    """
+
+    def __init__(self, *, vignette_x_edge, **kwargs):
+        super().__init__(**kwargs)
+        self._vig_x_edge = float(vignette_x_edge)
+        self._vig_cache = OrderedDict()
+
+    def _get_mesh(self, thx, thy):
+        """Return the annulus mesh with the vignetting cut applied, cached.
+
+        The base annulus mesh (and any obscuration clipping) is built by the
+        parent; here we additionally clip it against the vignetting edge and
+        cache the result per field angle, mirroring the parent's own cache.
+        """
+        base = super()._get_mesh(thx, thy)
+        key = (round(thx, 6), round(thy, 6))
+        if key not in self._vig_cache:
+            if len(self._vig_cache) >= 10:
+                self._vig_cache.popitem(last=False)
+            self._vig_cache[key] = self._clip_to_vignette(base)
+        return self._vig_cache[key]
+
+    def _clip_to_vignette(self, mesh):
+        """Clip a triangle mesh to the illuminated half-plane ``u <= x_edge``."""
+        x_edge = self._vig_x_edge
+        tri = mesh["vertices"][mesh["triangles"]]          # (M, 3, 2)
+        u = tri[..., 0]
+
+        keep_full = tri[u.max(axis=1) <= x_edge]
+        band = tri[(u.min(axis=1) <= x_edge) & (u.max(axis=1) > x_edge)]
+        triangles = list(keep_full)
+        for t in band:
+            triangles.extend(self._clip_triangle_to_vignette(t, x_edge))
+        return self._mesh_from_triangles(triangles)
+
+    @staticmethod
+    def _clip_triangle_to_vignette(tri, x_edge):
+        """Clip one triangle to ``u <= x_edge`` and fan-triangulate the result."""
+        out = []
+        for i in range(3):
+            s = tri[i]
+            p = tri[(i + 1) % 3]
+            s_in = s[0] <= x_edge
+            p_in = p[0] <= x_edge
+
+            if s_in and p_in:
+                out.append(p)
+            elif s_in and not p_in:
+                t = (x_edge - s[0]) / (p[0] - s[0])
+                out.append(s + t * (p - s))
+            elif not s_in and p_in:
+                t = (x_edge - s[0]) / (p[0] - s[0])
+                out.append(s + t * (p - s))
+                out.append(p)
+
+        if len(out) < 3:
+            return []
+
+        clipped = []
+        for i in range(1, len(out) - 1):
+            t = np.array([out[0], out[i], out[i + 1]], dtype=float)
+            area = 0.5 * abs(
+                (t[1, 0] - t[0, 0]) * (t[2, 1] - t[0, 1])
+                - (t[1, 1] - t[0, 1]) * (t[2, 0] - t[0, 0])
+            )
+            if area > 1e-30:
+                clipped.append(t)
+        return clipped
 
 
 def default_jobs():
@@ -37,9 +127,9 @@ def make_factory(
     *,
     surface_brightness,
     zk_r_inner=C.R_INNER,
-    pupil_r_outer=C.R_OUTER,
     pupil_r_inner=None,
     nrad=C.NRAD,
+    vignette_x_edge=None,
 ):
     """Build a triangle donut factory for the toy Rubin paraboloid.
 
@@ -51,15 +141,16 @@ def make_factory(
         Inner radius of the annular-Zernike normalization, in meters.  Equal to
         the physical obscuration for the obscuration study; held fixed at the
         Rubin value for the vignetting study.
-    pupil_r_outer : float, optional
-        Outer edge of the illuminated pupil, in meters.  Shrinking this below
-        ``R_OUTER`` (while keeping the Zernike normalization fixed) is how the
-        vignetting study removes outer-pupil light.
     pupil_r_inner : float, optional
         Inner edge of the illuminated pupil, in meters.  Defaults to
         ``zk_r_inner`` (the central obscuration).
     nrad : int, optional
         Number of radial rings in the mesh.
+    vignette_x_edge : float, optional
+        If given, an additional straight-edge cut is applied to model
+        *asymmetric* vignetting: pixels with ``u > vignette_x_edge`` are
+        removed (see :class:`VignettedTriangleFactory`).  Used by the
+        vignetting study.
 
     Returns
     -------
@@ -68,16 +159,21 @@ def make_factory(
     """
     if pupil_r_inner is None:
         pupil_r_inner = zk_r_inner
-    return danish.DonutTriangleFactory(
+    kwargs = dict(
         R_outer=C.R_OUTER,          # Zernike normalization: full aperture
         R_inner=zk_r_inner,
-        pupil_R_outer=pupil_r_outer,
         pupil_R_inner=pupil_r_inner,
         focal_length=C.FOCAL_LENGTH,
         pixel_scale=C.PIXEL_SCALE,
         nrad=nrad,
         surface_brightness=surface_brightness,
     )
+    if vignette_x_edge is not None:
+        return VignettedTriangleFactory(
+            vignette_x_edge=vignette_x_edge,
+            **kwargs,
+        )
+    return danish.DonutTriangleFactory(**kwargs)
 
 
 def make_reference(defocus=C.DEFOCUS_Z4):
@@ -96,6 +192,47 @@ def make_reference(defocus=C.DEFOCUS_Z4):
     z_ref = np.zeros(C.JMAX + 1)
     z_ref[4] = defocus
     return z_ref
+
+
+def fixed_diameter_defocus(
+    zk_r_inner,
+    *,
+    reference_r_inner=C.R_INNER,
+    reference_defocus=C.DEFOCUS_Z4,
+    r_outer=C.R_OUTER,
+):
+    """Return the Z4 coefficient that keeps the outer donut diameter fixed.
+
+    The annular-Zernike Z4 slope is proportional to
+    ``defocus / (1 - epsilon**2)``.  When the Zernike inner radius changes, a
+    fixed numerical Z4 coefficient therefore changes the physical defocus
+    slope and hence the donut diameter.  Scaling by the annulus area factor
+    keeps the outer-edge slope fixed relative to the reference annulus.
+    """
+    eps = float(zk_r_inner) / r_outer
+    eps_ref = float(reference_r_inner) / r_outer
+    if not (0.0 <= eps < 1.0):
+        raise ValueError("zk_r_inner must satisfy 0 <= zk_r_inner < r_outer")
+    if not (0.0 <= eps_ref < 1.0):
+        raise ValueError(
+            "reference_r_inner must satisfy 0 <= reference_r_inner < r_outer"
+        )
+    return reference_defocus * (1.0 - eps**2) / (1.0 - eps_ref**2)
+
+
+def vignette_fraction(x_edge, n_rho=400, n_theta=1440):
+    """Return the fraction of the annular pupil removed by a straight-edge cut.
+
+    The vignetted region is ``u > x_edge``.  The integral is a simple polar
+    quadrature over the nominal Rubin annulus; the ``rho`` weight is the area
+    element, and constant factors cancel in the ratio.
+    """
+    rho = np.linspace(C.R_INNER, C.R_OUTER, n_rho)
+    theta = np.linspace(0.0, 2.0 * np.pi, n_theta, endpoint=False)
+    rr, th = np.meshgrid(rho, theta, indexing="ij")
+    u = rr * np.cos(th)
+    outside = u > x_edge
+    return float((outside * rr).sum() / rr.sum())
 
 
 def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0,
@@ -183,9 +320,10 @@ def _mc_chunk(payload):
     perturbation.  Defined at module level so it is picklable for
     multiprocessing.
     """
-    factory_kwargs, z_terms, z_trues, seeds, flux_norm = payload
+    factory_kwargs, z_terms, z_trues, seeds, flux_norm, z_ref = payload
     factory = make_factory(**factory_kwargs)
-    z_ref = make_reference()
+    if z_ref is None:
+        z_ref = make_reference()
     out = np.empty((len(z_trues), len(z_terms)))
     for i, (z_true, sd) in enumerate(zip(z_trues, seeds)):
         out[i], _ = fit_one(z_true, z_terms, factory, z_ref=z_ref,
@@ -194,7 +332,8 @@ def _mc_chunk(payload):
 
 
 def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
-                inject_sigma=C.INJECT_SIGMA, n_jobs=1, flux_norm="total"):
+                inject_sigma=C.INJECT_SIGMA, n_jobs=1, flux_norm="total",
+                z_ref=None):
     """Run many random-perturbation trials and collect the fit residuals.
 
     Each trial draws an independent perturbation ``N(0, inject_sigma)`` for
@@ -222,6 +361,11 @@ def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
         Flux normalization (see :func:`fit_one`).  Use "total" at fixed geometry
         (e.g. the sparsity study) and "per_pixel" when sweeping pupil geometry
         (obscuration, vignetting) so per-pixel SNR stays constant.
+    z_ref : ndarray, optional
+        Reference Zernike vector.  Defaults to :func:`make_reference`.  The
+        obscuration study passes an adjusted Z4 reference here so the simulated
+        donuts keep a fixed outer diameter while the annular normalization
+        radius changes.
 
     Returns
     -------
@@ -234,13 +378,14 @@ def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
     seeds = rng.integers(1 << 30, size=n_mc)
 
     if n_jobs <= 1:
-        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds, flux_norm))
+        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds, flux_norm,
+                          z_ref))
 
     # Split the trials into contiguous chunks, one per worker.  Contiguous
     # chunks + in-order concatenation preserve the trial ordering.
     n_jobs = min(n_jobs, n_mc)
     chunks = np.array_split(np.arange(n_mc), n_jobs)
-    payloads = [(factory_kwargs, z_terms, z_trues[c], seeds[c], flux_norm)
+    payloads = [(factory_kwargs, z_terms, z_trues[c], seeds[c], flux_norm, z_ref)
                 for c in chunks]
     with ProcessPoolExecutor(max_workers=n_jobs) as ex:
         results = list(ex.map(_mc_chunk, payloads))
