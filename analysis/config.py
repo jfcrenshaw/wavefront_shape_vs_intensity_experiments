@@ -25,27 +25,27 @@ DATADIR = Path(__file__).resolve().parent.parent / "data"
 
 # --- Telescope geometry (Rubin-like) --------------------------------------
 # Entrance-pupil outer radius and the nominal central obscuration.
-R_OUTER = 4.18            # meters (Rubin primary mirror rim)
-EPS_RUBIN = 0.61          # Rubin central-obscuration fraction
+R_OUTER = 4.18  # meters (Rubin primary mirror rim)
+EPS_RUBIN = 0.61  # Rubin central-obscuration fraction
 R_INNER = EPS_RUBIN * R_OUTER
-FOCAL_LENGTH = 10.31      # meters
-PIXEL_SCALE = 10e-6       # meters per pixel (10 micron)
+FOCAL_LENGTH = 10.31  # meters
+PIXEL_SCALE = 10e-6  # meters per pixel (10 micron)
 
 # --- Image + rendering ----------------------------------------------------
-NPIX = 181                # odd; Rubin-nominal donut is ~133 px across
-NRAD = 35                 # radial rings in the triangle mesh (accuracy vs speed)
-DEFOCUS_Z4 = 24.3e-6      # meters of Z4 at EPS_RUBIN; sets the donut size
-FWHM = 0.7                # atmospheric seeing FWHM, arcsec
+NPIX = 181  # odd; Rubin-nominal donut is ~133 px across
+NRAD = 35  # radial rings in the triangle mesh (accuracy vs speed)
+DEFOCUS_Z4 = 24.3e-6  # meters of Z4 at EPS_RUBIN; sets the donut size
+FWHM = 0.7  # atmospheric seeing FWHM, arcsec
 
 # --- Reference wavelength (for reporting only) ----------------------------
-WAVELENGTH = 750e-9       # meters (r-band-ish); used to quote errors in waves
+WAVELENGTH = 750e-9  # meters (r-band-ish); used to quote errors in waves
 
 # --- Noise --------------------------------------------------------------
 # High flux + tiny sky => noise is negligible for the fit.  It exists only to
 # keep the optimizer well behaved; the Monte-Carlo spread we plot comes from
 # drawing different true perturbations, not from photon noise.
-FLUX = 1e7                # total donut flux (photons); used by fixed-total-flux mode
-SKY_LEVEL = 10.0          # sky variance per pixel
+FLUX = 1e7  # total donut flux (photons); used by fixed-total-flux mode
+SKY_LEVEL = 10.0  # sky variance per pixel
 
 # Target mean counts per illuminated pixel, used when flux is normalized to hold
 # per-pixel signal-to-noise constant across pupil geometries (the obscuration and
@@ -59,8 +59,8 @@ COUNTS_PER_PIX = 2000.0
 # Each fitted Zernike mode is drawn from N(0, INJECT_SIGMA).  The same sigma
 # is used for every mode so residuals are directly comparable across modes,
 # and the "relative error" we plot is residual / INJECT_SIGMA.
-INJECT_SIGMA = 50e-9      # meters RMS per mode (~0.067 waves at 750 nm)
-N_MC = 50                 # realizations per condition (raise for final figures)
+INJECT_SIGMA = 50e-9  # meters RMS per mode (~0.067 waves at 750 nm)
+N_MC = 50  # realizations per condition (raise for final figures)
 SEED = 20260704
 
 # --- Uncertainty-aware heatmap display -----------------------------------
@@ -100,8 +100,8 @@ DENSE_TERMS = list(range(4, JMAX + 1))
 SPARSE_TERMS = [4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 20, 21]
 
 # --- Modes highlighted in the obscuration / vignetting studies ------------
-COMA_TERMS = [7, 8, 16, 17]        # primary (7,8) and secondary (16,17) coma
-SPHERICAL_TERMS = [11, 22]         # primary (11) and secondary (22) spherical
+COMA_TERMS = [7, 8, 16, 17]  # primary (7,8) and secondary (16,17) coma
+SPHERICAL_TERMS = [11, 22]  # primary (11) and secondary (22) spherical
 
 
 def waves(x_meters):

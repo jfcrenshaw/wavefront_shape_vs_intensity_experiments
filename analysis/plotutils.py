@@ -91,8 +91,15 @@ def yerr_from_interval(y, lo, hi):
     return np.clip(np.vstack([y - lo, hi - y]), 0.0, np.inf)
 
 
-def all_terms_heatmap(param_values, sig, xlabel, title, out, residuals,
-                      xtick_fmt="{:.2f}"):
+def all_terms_heatmap(
+    param_values,
+    sig,
+    xlabel,
+    title,
+    out,
+    residuals,
+    xtick_fmt="{:.2f}",
+):
     """Heatmap of normalized error for every dense Zernike vs a swept parameter.
 
     Color is ``log10(error / error_at_first_param)`` on a diverging scale, so
@@ -120,8 +127,8 @@ def all_terms_heatmap(param_values, sig, xlabel, title, out, residuals,
     residuals : ndarray, shape (P, n_mc, len(DENSE_TERMS))
         Raw Monte-Carlo residuals used for uncertainty masking.
     """
-    ratio = sig / sig[0]                      # normalize to baseline per mode
-    data = np.log10(ratio).T                  # rows = terms, cols = param
+    ratio = sig / sig[0]  # normalize to baseline per mode
+    data = np.log10(ratio).T  # rows = terms, cols = param
     vmax = np.nanmax(np.abs(data))
     reliable = _significant_effect_mask(data, residuals)
     shown = np.ma.masked_where(~reliable, data)
@@ -129,8 +136,14 @@ def all_terms_heatmap(param_values, sig, xlabel, title, out, residuals,
     cmap.set_bad("#f0f0f0")
 
     fig, ax = plt.subplots(figsize=(8, 7))
-    im = ax.imshow(shown, aspect="auto", origin="lower", cmap=cmap,
-                   vmin=-vmax, vmax=vmax)
+    im = ax.imshow(
+        shown,
+        aspect="auto",
+        origin="lower",
+        cmap=cmap,
+        vmin=-vmax,
+        vmax=vmax,
+    )
     ax.set_yticks(range(len(C.DENSE_TERMS)))
     ax.set_yticklabels([f"Z{t}" for t in C.DENSE_TERMS])
     ax.set_xticks(range(len(param_values)))
@@ -139,9 +152,11 @@ def all_terms_heatmap(param_values, sig, xlabel, title, out, residuals,
     ax.set_ylabel("Zernike (Noll index)")
     ax.set_title(title)
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("$\\log_{10}$(error / baseline)   "
-                   "[red = worse, blue = better]\n"
-                   "muted = not significant or too small")
+    cbar.set_label(
+        "$\\log_{10}$(error / baseline)   "
+        "[red = worse, blue = better]\n"
+        "muted = not significant or too small"
+    )
     muted = reliable.size - int(np.count_nonzero(reliable))
     print(f"  muted {muted}/{reliable.size} heatmap cells by MC thresholds")
     fig.tight_layout()

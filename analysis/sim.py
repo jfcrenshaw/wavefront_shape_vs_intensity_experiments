@@ -70,7 +70,7 @@ class VignettedTriangleFactory(danish.DonutTriangleFactory):
     def _clip_to_vignette(self, mesh):
         """Clip a triangle mesh to the illuminated half-plane ``u <= x_edge``."""
         x_edge = self._vig_x_edge
-        tri = mesh["vertices"][mesh["triangles"]]          # (M, 3, 2)
+        tri = mesh["vertices"][mesh["triangles"]]  # (M, 3, 2)
         u = tri[..., 0]
 
         keep_full = tri[u.max(axis=1) <= x_edge]
@@ -160,7 +160,7 @@ def make_factory(
     if pupil_r_inner is None:
         pupil_r_inner = zk_r_inner
     kwargs = dict(
-        R_outer=C.R_OUTER,          # Zernike normalization: full aperture
+        R_outer=C.R_OUTER,  # Zernike normalization: full aperture
         R_inner=zk_r_inner,
         pupil_R_inner=pupil_r_inner,
         focal_length=C.FOCAL_LENGTH,
@@ -235,8 +235,16 @@ def vignette_fraction(x_edge, n_rho=400, n_theta=1440):
     return float((outside * rr).sum() / rr.sum())
 
 
-def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0,
-            flux_norm="total", return_images=False):
+def fit_one(
+    z_true,
+    z_terms,
+    factory,
+    *,
+    z_ref=None,
+    seed=0,
+    flux_norm="total",
+    return_images=False,
+):
     """Simulate one donut with known aberrations and fit them back.
 
     Parameters
@@ -269,8 +277,13 @@ def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0,
         z_ref = make_reference()
 
     model = danish.SingleDonutModel(
-        factory, z_ref=z_ref, z_terms=list(z_terms),
-        thx=0.0, thy=0.0, bkg_order=-1, seed=seed,
+        factory,
+        z_ref=z_ref,
+        z_terms=list(z_terms),
+        thx=0.0,
+        thy=0.0,
+        bkg_order=-1,
+        seed=seed,
     )
 
     # Render a unit-flux donut so we can choose the flux scale explicitly.
@@ -298,9 +311,15 @@ def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0,
     # steps, so we quietly ignore the transient warning.
     with np.errstate(invalid="ignore"):
         result = least_squares(
-            model.chi, guess, jac=model.jac,
+            model.chi,
+            guess,
+            jac=model.jac,
             args=(truth, C.SKY_LEVEL),
-            x_scale="jac", ftol=1e-5, xtol=1e-5, gtol=1e-5, max_nfev=100,
+            x_scale="jac",
+            ftol=1e-5,
+            xtol=1e-5,
+            gtol=1e-5,
+            max_nfev=100,
         )
     unpacked = model.unpack_params(result.x)
     z_fit = np.asarray(unpacked["z_fit"], dtype=float)
@@ -326,14 +345,28 @@ def _mc_chunk(payload):
         z_ref = make_reference()
     out = np.empty((len(z_trues), len(z_terms)))
     for i, (z_true, sd) in enumerate(zip(z_trues, seeds)):
-        out[i], _ = fit_one(z_true, z_terms, factory, z_ref=z_ref,
-                            seed=int(sd), flux_norm=flux_norm)
+        out[i], _ = fit_one(
+            z_true,
+            z_terms,
+            factory,
+            z_ref=z_ref,
+            seed=int(sd),
+            flux_norm=flux_norm,
+        )
     return out
 
 
-def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
-                inject_sigma=C.INJECT_SIGMA, n_jobs=1, flux_norm="total",
-                z_ref=None):
+def monte_carlo(
+    z_terms,
+    factory_kwargs,
+    *,
+    n_mc=C.N_MC,
+    seed=C.SEED,
+    inject_sigma=C.INJECT_SIGMA,
+    n_jobs=1,
+    flux_norm="total",
+    z_ref=None,
+):
     """Run many random-perturbation trials and collect the fit residuals.
 
     Each trial draws an independent perturbation ``N(0, inject_sigma)`` for
@@ -378,15 +411,16 @@ def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
     seeds = rng.integers(1 << 30, size=n_mc)
 
     if n_jobs <= 1:
-        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds, flux_norm,
-                          z_ref))
+        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds, flux_norm, z_ref))
 
     # Split the trials into contiguous chunks, one per worker.  Contiguous
     # chunks + in-order concatenation preserve the trial ordering.
     n_jobs = min(n_jobs, n_mc)
     chunks = np.array_split(np.arange(n_mc), n_jobs)
-    payloads = [(factory_kwargs, z_terms, z_trues[c], seeds[c], flux_norm, z_ref)
-                for c in chunks]
+    payloads = [
+        (factory_kwargs, z_terms, z_trues[c], seeds[c], flux_norm, z_ref)
+        for c in chunks
+    ]
     with ProcessPoolExecutor(max_workers=n_jobs) as ex:
         results = list(ex.map(_mc_chunk, payloads))
     return np.concatenate(results, axis=0)

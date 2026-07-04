@@ -39,7 +39,7 @@ GEOMETRY_CROP_HALF = C.NPIX // 2
 def crop(img, half=70):
     """Center-crop a square image to +/- ``half`` pixels for display."""
     c = img.shape[0] // 2
-    return img[c - half:c + half + 1, c - half:c + half + 1]
+    return img[c - half : c + half + 1, c - half : c + half + 1]
 
 
 def plot_geometry_sweep():
@@ -52,21 +52,28 @@ def plot_geometry_sweep():
     for col, eps in enumerate(eps_values):
         r_in = eps * C.R_OUTER
         z_obsc = sim.make_reference(defocus=sim.fixed_diameter_defocus(r_in))
-        fac = sim.make_factory(surface_brightness=True, zk_r_inner=r_in,
-                               pupil_r_inner=r_in)
+        fac = sim.make_factory(
+            surface_brightness=True,
+            zk_r_inner=r_in,
+            pupil_r_inner=r_in,
+        )
         ax = axes[0, col]
-        ax.imshow(crop(fac.image(aberrations=z_obsc, npix=C.NPIX),
-                       half=GEOMETRY_CROP_HALF),
-                  origin="lower", cmap="magma")
+        ax.imshow(
+            crop(fac.image(aberrations=z_obsc, npix=C.NPIX), half=GEOMETRY_CROP_HALF),
+            origin="lower",
+            cmap="magma",
+        )
         ax.set_title(f"$\\varepsilon$={eps:.2f}")
 
     for col, x_edge in enumerate(x_edges):
         frac = sim.vignette_fraction(x_edge)
         fac = sim.make_factory(surface_brightness=True, vignette_x_edge=x_edge)
         ax = axes[1, col]
-        ax.imshow(crop(fac.image(aberrations=z_ref, npix=C.NPIX),
-                       half=GEOMETRY_CROP_HALF),
-                  origin="lower", cmap="magma")
+        ax.imshow(
+            crop(fac.image(aberrations=z_ref, npix=C.NPIX), half=GEOMETRY_CROP_HALF),
+            origin="lower",
+            cmap="magma",
+        )
         ax.set_title(f"$f_{{\\rm vig}}$={frac:.2f}")
 
     for ax in axes.flat:
@@ -91,8 +98,9 @@ def main():
     rng = np.random.default_rng(C.SEED)
     z_rand = z_ref.copy()
     z_rand[C.DENSE_TERMS] += rng.normal(0.0, C.INJECT_SIGMA, size=len(C.DENSE_TERMS))
-    cases = [(label, z_ref if idx is None else _add(z_ref, idx, AMP))
-             for label, idx in CASES]
+    cases = [
+        (label, z_ref if idx is None else _add(z_ref, idx, AMP)) for label, idx in CASES
+    ]
     cases.append(("Random dense draw", z_rand))
 
     nrow = len(cases)
@@ -101,15 +109,21 @@ def main():
         for col, fac in enumerate([fac_full, fac_shape]):
             img = crop(fac.image(aberrations=ab, npix=C.NPIX))
             ax = axes[row, col]
-            ax.imshow(img, origin="lower", cmap="magma")   # per-image autoscale
-            ax.set_xticks([]); ax.set_yticks([])
+            ax.imshow(img, origin="lower", cmap="magma")  # per-image autoscale
+            ax.set_xticks([])
+            ax.set_yticks([])
             if row == 0:
-                ax.set_title("full (shape + intensity)" if col == 0
-                             else "shape only", fontsize=11)
+                ax.set_title(
+                    "full (shape + intensity)" if col == 0 else "shape only",
+                    fontsize=11,
+                )
             if col == 0:
                 ax.set_ylabel(label, fontsize=10)
-    fig.suptitle(f"Toy Rubin donuts (defocus $Z_4$={C.DEFOCUS_Z4*1e6:.0f} $\\mu$m, "
-                 f"aberration amp={AMP*1e9:.0f} nm)", fontsize=12)
+    fig.suptitle(
+        f"Toy Rubin donuts (defocus $Z_4$={C.DEFOCUS_Z4 * 1e6:.0f} $\\mu$m, "
+        f"aberration amp={AMP * 1e9:.0f} nm)",
+        fontsize=12,
+    )
     fig.tight_layout()
     out = C.FIGDIR / "example_donuts.png"
     fig.savefig(out, dpi=150)

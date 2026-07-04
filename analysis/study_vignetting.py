@@ -61,10 +61,15 @@ def sweep(x_edges, n_mc, seed, n_jobs):
     for i, xe in enumerate(x_edges):
         # Zernike normalization and pupil radii stay on the full aperture; only
         # the illuminated triangles left of the straight vignette edge survive.
-        kwargs = dict(surface_brightness=True, zk_r_inner=C.R_INNER,
-                      vignette_x_edge=xe)
-        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed,
-                              n_jobs=n_jobs, flux_norm="per_pixel")
+        kwargs = dict(surface_brightness=True, zk_r_inner=C.R_INNER, vignette_x_edge=xe)
+        res = sim.monte_carlo(
+            C.DENSE_TERMS,
+            kwargs,
+            n_mc=n_mc,
+            seed=seed,
+            n_jobs=n_jobs,
+            flux_norm="per_pixel",
+        )
         residuals[i] = res
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  vignette fraction={sim.vignette_fraction(xe):.2f} done")
@@ -74,11 +79,18 @@ def sweep(x_edges, n_mc, seed, n_jobs):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--n-mc", type=int, default=C.N_MC)
-    p.add_argument("--jobs", type=int, default=sim.default_jobs(),
-                   help="worker processes (default: performance-core count)")
+    p.add_argument(
+        "--jobs",
+        type=int,
+        default=sim.default_jobs(),
+        help="worker processes (default: performance-core count)",
+    )
     p.add_argument("--quick", action="store_true", help="fast, low-stats run")
-    p.add_argument("--plot-only", action="store_true",
-                   help="skip the simulation; re-draw plots from saved data")
+    p.add_argument(
+        "--plot-only",
+        action="store_true",
+        help="skip the simulation; re-draw plots from saved data",
+    )
     args = p.parse_args()
 
     C.FIGDIR.mkdir(exist_ok=True)
@@ -88,8 +100,9 @@ def main():
     # Simulate and cache, unless we were asked to only re-draw the plots.
     if args.plot_only:
         if not datafile.exists():
-            raise SystemExit(f"no saved data at {datafile}; run without "
-                             "--plot-only first")
+            raise SystemExit(
+                f"no saved data at {datafile}; run without --plot-only first"
+            )
     else:
         n_mc = 8 if args.quick else args.n_mc
         if n_mc < 2:
@@ -108,15 +121,18 @@ def main():
     frac, sig = data["frac"], data["sig"]
     residuals = data["residuals"]
     if residuals.shape[1] < 2:
-        raise SystemExit(f"{datafile} has fewer than 2 Monte-Carlo trials; "
-                         "rerun without --plot-only")
+        raise SystemExit(
+            f"{datafile} has fewer than 2 Monte-Carlo trials; rerun without --plot-only"
+        )
 
     # Highlight coma and spherical (same families as the obscuration study), plus
     # the median over all dense modes as a summary curve.
-    styles = [(7, "Z7 (primary coma)", "C0", "-"),
-              (16, "Z16 (secondary coma)", "C0", "--"),
-              (11, "Z11 (primary spherical)", "C1", "-"),
-              (22, "Z22 (secondary spherical)", "C1", "--")]
+    styles = [
+        (7, "Z7 (primary coma)", "C0", "-"),
+        (16, "Z16 (secondary coma)", "C0", "--"),
+        (11, "Z11 (primary spherical)", "C1", "-"),
+        (22, "Z22 (secondary spherical)", "C1", "--"),
+    ]
 
     fig, ax = plt.subplots(figsize=(6, 5))
     for term, label, color, ls in styles:
@@ -124,14 +140,20 @@ def main():
         curve = sig[:, j] / sig[0, j]
         kwargs = dict(marker="o", color=color, linestyle=ls, label=label)
         lo, hi = plotutils.relative_error_interval(residuals, j)
-        ax.errorbar(frac, curve,
-                    yerr=plotutils.yerr_from_interval(curve, lo, hi),
-                    capsize=2.0, capthick=0.8, elinewidth=0.8,
-                    ecolor=color, **kwargs)
+        ax.errorbar(
+            frac,
+            curve,
+            yerr=plotutils.yerr_from_interval(curve, lo, hi),
+            capsize=2.0,
+            capthick=0.8,
+            elinewidth=0.8,
+            ecolor=color,
+            **kwargs,
+        )
     med = np.median(sig / sig[0], axis=1)
     ax.plot(frac, med, color="k", lw=2, alpha=0.5, label="median (all modes)")
     ax.axhline(1.0, color="gray", lw=0.6)
-    ax.set_yscale("log")   # Z11 spikes by ~100x, so log keeps everything legible
+    ax.set_yscale("log")  # Z11 spikes by ~100x, so log keeps everything legible
     ax.set_xlabel("vignetted fraction of pupil area")
     ax.set_ylabel("relative error (normalized to no vignetting)")
     ax.set_title("Wavefront estimation vs asymmetric vignetting (toy, field center)")
@@ -143,7 +165,8 @@ def main():
     plt.close(fig)
 
     plotutils.all_terms_heatmap(
-        frac, sig,
+        frac,
+        sig,
         xlabel="vignetted fraction of pupil area",
         title="All modes vs asymmetric vignetting (toy, field center)",
         out=C.FIGDIR / "all_terms_vs_vignetting.png",
