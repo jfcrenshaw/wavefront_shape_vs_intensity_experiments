@@ -24,7 +24,6 @@ Run:  python study_obscuration.py [--n-mc N] [--quick] [--plot-only]
 import argparse
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import config as C
 import sim
@@ -71,56 +70,6 @@ def sweep(eps_values, n_mc, seed, n_jobs):
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  eps={eps:.2f}, Z4={z_ref[4] * 1e6:.1f} um done")
     return sig, residuals
-
-
-def _curve(sig, eps_values, term):
-    """Error vs epsilon for one mode, normalized to its epsilon=0 value."""
-    j = C.DENSE_TERMS.index(term)
-    c = sig[:, j]
-    return c / c[0]
-
-
-def plot_family(eps_values, sig, residuals, styles, title, fname):
-    """Plot normalized error vs obscuration for a family of modes.
-
-    ``styles`` is a list of ``(term, label, color, filled)`` tuples.  Color
-    distinguishes primary from secondary order; a filled vs hollow marker
-    distinguishes the two parities of a paired mode, matching the paper.
-    """
-    fig, ax = plt.subplots(figsize=(6, 5))
-    for term, label, color, filled in styles:
-        j = C.DENSE_TERMS.index(term)
-        curve = _curve(sig, eps_values, term)
-        kwargs = dict(
-            marker="o",
-            color=color,
-            linestyle="-",
-            markerfacecolor=color if filled else "white",
-            label=label,
-        )
-        lo, hi = plotutils.relative_error_interval(residuals, j)
-        ax.errorbar(
-            eps_values,
-            curve,
-            yerr=plotutils.yerr_from_interval(curve, lo, hi),
-            capsize=2.0,
-            capthick=0.8,
-            elinewidth=0.8,
-            ecolor=color,
-            **kwargs,
-        )
-    ax.axvline(C.EPS_RUBIN, color="k", ls=":", lw=1)
-    ax.text(C.EPS_RUBIN, ax.get_ylim()[1], " Rubin", va="top", fontsize=9)
-    ax.axhline(1.0, color="gray", lw=0.6)
-    ax.set_xlabel(r"central obscuration $\varepsilon = R_{\rm inner}/R_{\rm outer}$")
-    ax.set_ylabel("relative error (normalized to $\\varepsilon=0$)")
-    ax.set_title(title)
-    ax.legend()
-    fig.tight_layout()
-    out = C.FIGDIR / fname
-    fig.savefig(out, dpi=150)
-    print(f"wrote {out}")
-    plt.close(fig)
 
 
 def main():
@@ -177,37 +126,23 @@ def main():
             f"{datafile} has fewer than 2 Monte-Carlo trials; rerun without --plot-only"
         )
 
-    plot_family(
-        eps_values,
-        sig,
-        residuals,
-        styles=[
-            (7, "Z7 (primary coma)", "C0", True),
-            (8, "Z8 (primary coma)", "C0", False),
-            (16, "Z16 (secondary coma)", "C1", True),
-            (17, "Z17 (secondary coma)", "C1", False),
-        ],
-        title="Coma estimation vs central obscuration",
-        fname="coma_vs_obscuration.png",
-    )
-    plot_family(
-        eps_values,
-        sig,
-        residuals,
-        styles=[
-            (11, "Z11 (primary spherical)", "C0", True),
-            (22, "Z22 (secondary spherical)", "C1", False),
-        ],
-        title="Spherical estimation vs central obscuration",
-        fname="spherical_vs_obscuration.png",
-    )
+    for stem, family, lines in plotutils.FAMILIES:
+        plotutils.plot_family(
+            eps_values,
+            sig,
+            residuals,
+            lines,
+            xlabel=r"Central obscuration $\varepsilon$",
+            ylabel="Relative error",
+            title=f"{family}",
+            out=C.FIGDIR / f"obscuration_trend_{stem}.pdf",
+            rubin_line=True,
+        )
     plotutils.all_terms_heatmap(
         eps_values,
         sig,
-        xlabel=r"central obscuration $\varepsilon$",
-        title="All modes vs central obscuration",
-        out=C.FIGDIR / "all_terms_vs_obscuration.png",
-        residuals=residuals,
+        xlabel=r"Central obscuration $\varepsilon$",
+        out=C.FIGDIR / "obscuration_all_terms.pdf",
     )
 
 

@@ -28,7 +28,6 @@ Run:  python study_vignetting.py [--n-mc N] [--quick] [--plot-only]
 import argparse
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import config as C
 import sim
@@ -125,52 +124,26 @@ def main():
             f"{datafile} has fewer than 2 Monte-Carlo trials; rerun without --plot-only"
         )
 
-    # Highlight coma and spherical (same families as the obscuration study), plus
-    # the median over all dense modes as a summary curve.
-    styles = [
-        (7, "Z7 (primary coma)", "C0", "-"),
-        (16, "Z16 (secondary coma)", "C0", "--"),
-        (11, "Z11 (primary spherical)", "C1", "-"),
-        (22, "Z22 (secondary spherical)", "C1", "--"),
-    ]
-
-    fig, ax = plt.subplots(figsize=(6, 5))
-    for term, label, color, ls in styles:
-        j = C.DENSE_TERMS.index(term)
-        curve = sig[:, j] / sig[0, j]
-        kwargs = dict(marker="o", color=color, linestyle=ls, label=label)
-        lo, hi = plotutils.relative_error_interval(residuals, j)
-        ax.errorbar(
+    # One plot per mode family, mirroring the obscuration study exactly; only the
+    # x-axis (vignetted fraction), y-label, title, and lack of a Rubin line differ.
+    for stem, family, lines in plotutils.FAMILIES:
+        plotutils.plot_family(
             frac,
-            curve,
-            yerr=plotutils.yerr_from_interval(curve, lo, hi),
-            capsize=2.0,
-            capthick=0.8,
-            elinewidth=0.8,
-            ecolor=color,
-            **kwargs,
+            sig,
+            residuals,
+            lines,
+            xlabel=r"Vignetted fraction $f_\mathrm{vig}$",
+            ylabel="Relative error",
+            title=f"{family}",
+            out=C.FIGDIR / f"vignetting_trend_{stem}.pdf",
+            logy=True,
         )
-    med = np.median(sig / sig[0], axis=1)
-    ax.plot(frac, med, color="k", lw=2, alpha=0.5, label="median (all modes)")
-    ax.axhline(1.0, color="gray", lw=0.6)
-    ax.set_yscale("log")  # Z11 spikes by ~100x, so log keeps everything legible
-    ax.set_xlabel("vignetted fraction of pupil area")
-    ax.set_ylabel("relative error (normalized to no vignetting)")
-    ax.set_title("Wavefront estimation vs asymmetric vignetting (toy, field center)")
-    ax.legend()
-    fig.tight_layout()
-    out = C.FIGDIR / "vignetting.png"
-    fig.savefig(out, dpi=150)
-    print(f"wrote {out}")
-    plt.close(fig)
 
     plotutils.all_terms_heatmap(
         frac,
         sig,
-        xlabel=r"vignetted fraction $f_\mathrm{vig}$",
-        title="All modes vs asymmetric vignetting (toy, field center)",
-        out=C.FIGDIR / "all_terms_vs_vignetting.png",
-        residuals=residuals,
+        xlabel=r"Vignetted fraction $f_\mathrm{vig}$",
+        out=C.FIGDIR / "vignetting_all_terms.pdf",
     )
 
 
