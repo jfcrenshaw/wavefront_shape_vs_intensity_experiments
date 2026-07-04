@@ -124,7 +124,7 @@ def plot_estimates(data):
 
     fig.subplots_adjust(hspace=0.1)
 
-    out = C.FIGDIR / "zk_estimates.pdf"
+    out = C.FIGDIR / "dense_vs_sparse.pdf"
     fig.savefig(out, bbox_inches="tight")
     print(f"wrote {out}")
     plt.close(fig)
