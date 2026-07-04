@@ -48,7 +48,7 @@ def plot_geometry_sweep():
     x_edges = np.linspace(C.R_OUTER, -0.4 * C.R_OUTER, N_GEOMETRY_COLS)
     z_ref = sim.make_reference()
 
-    fig, axes = plt.subplots(2, N_GEOMETRY_COLS, figsize=(10, 4.2))
+    fig, axes = plt.subplots(2, N_GEOMETRY_COLS, figsize=(7, 3.4))
     for col, eps in enumerate(eps_values):
         r_in = eps * C.R_OUTER
         z_obsc = sim.make_reference(defocus=sim.fixed_diameter_defocus(r_in))
@@ -58,7 +58,7 @@ def plot_geometry_sweep():
         ax.imshow(crop(fac.image(aberrations=z_obsc, npix=C.NPIX),
                        half=GEOMETRY_CROP_HALF),
                   origin="lower", cmap="magma")
-        ax.set_title(f"$\\varepsilon$={eps:.2f}", fontsize=10)
+        ax.set_title(f"$\\varepsilon$={eps:.2f}")
 
     for col, x_edge in enumerate(x_edges):
         frac = sim.vignette_fraction(x_edge)
@@ -67,17 +67,16 @@ def plot_geometry_sweep():
         ax.imshow(crop(fac.image(aberrations=z_ref, npix=C.NPIX),
                        half=GEOMETRY_CROP_HALF),
                   origin="lower", cmap="magma")
-        ax.set_title(f"$f_{{\\rm vig}}$={frac:.2f}", fontsize=10)
+        ax.set_title(f"$f_{{\\rm vig}}$={frac:.2f}")
 
     for ax in axes.flat:
         ax.set_xticks([])
         ax.set_yticks([])
-    axes[0, 0].set_ylabel("central\nobscuration", fontsize=10)
-    axes[1, 0].set_ylabel("asymmetric\nvignetting", fontsize=10)
-    fig.suptitle("Donut changes across pupil-geometry sweeps", fontsize=12)
+    axes[0, 0].set_ylabel("central\nobscuration")
+    axes[1, 0].set_ylabel("vignetting\nfraction")
     fig.tight_layout()
     out = C.FIGDIR / "geometry_sweep_donuts.png"
-    fig.savefig(out, dpi=150)
+    fig.savefig(out, dpi=500, bbox_inches="tight")
     print(f"wrote {out}")
     plt.close(fig)
 
@@ -127,4 +126,4 @@ def _add(z_ref, idx, amp):
 
 
 if __name__ == "__main__":
-    main()
+    plot_geometry_sweep()
