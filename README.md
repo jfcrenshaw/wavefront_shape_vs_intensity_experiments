@@ -13,7 +13,7 @@ model, we measure how much of each Zernike mode lives in shape vs intensity.
 ## What's here
 
 ```text
-analysis/
+scripts/
   config.py            all physical constants and experiment knobs
   sim.py               the simulate-one-donut-and-fit-it-back engine
   plotutils.py         shared plotting helpers (all-terms heatmap)
@@ -61,10 +61,10 @@ pip install -e ./danish --no-deps          # builds the C++ extension; batoid no
 
 ## Running
 
-Run from the `analysis/` directory:
+Run from the `scripts/` directory:
 
 ```bash
-cd analysis
+cd scripts
 python study_sparsity.py      # add --quick for a fast, low-statistics preview
 python study_obscuration.py
 python study_vignetting.py
