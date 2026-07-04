@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Generated figures (regenerate with the study scripts)
+figures/*.pdf
+figures/*.png
