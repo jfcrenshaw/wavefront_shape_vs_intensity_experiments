@@ -8,4 +8,6 @@ Holds the pieces every study and notebook reuses:
 
 Install editable (``pip install -e .``) so the study scripts in ``scripts/``
 and the notebooks import these from anywhere, with no ``sys.path`` surgery.
+
+The shared figure style lives in :func:`shape_vs_intensity.plotutils.use_style`.
 """

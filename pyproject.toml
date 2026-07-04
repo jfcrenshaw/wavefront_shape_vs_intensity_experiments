@@ -22,3 +22,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["shape_vs_intensity"]
+
+[tool.setuptools.package-data]
+shape_vs_intensity = ["*.mplstyle"]

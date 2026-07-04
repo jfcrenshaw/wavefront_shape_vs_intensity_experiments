@@ -29,6 +29,8 @@ from shape_vs_intensity import config as C
 from shape_vs_intensity import sim
 from shape_vs_intensity import plotutils
 
+plotutils.use_style()  # shared Computer-Modern figure style, independent of the cwd
+
 
 def sweep(eps_values, n_mc, seed, n_jobs):
     """Return per-mode 1-sigma error at each obscuration, for all dense modes.

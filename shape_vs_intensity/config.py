@@ -34,7 +34,11 @@ PIXEL_SCALE = 10e-6  # meters per pixel (10 micron)
 # --- Image + rendering ----------------------------------------------------
 NPIX = 181  # odd; Rubin-nominal donut is ~133 px across
 NRAD = 35  # radial rings in the triangle mesh (accuracy vs speed)
-DEFOCUS_Z4 = 24.3e-6  # meters of Z4 at EPS_RUBIN; sets the donut size
+# Sign convention follows Rubin/WEP: extra-focal is the +defocalOffset side,
+# represented by positive Z4 in this toy Zernike model; intra-focal is -Z4.
+EXTRA_DEFOCUS_SIGN = +1
+INTRA_DEFOCUS_SIGN = -1
+DEFOCUS_Z4 = 24.3e-6  # positive extra-focal Z4 magnitude at EPS_RUBIN
 FWHM = 0.7  # atmospheric seeing FWHM, arcsec
 
 # --- Reference wavelength (for reporting only) ----------------------------

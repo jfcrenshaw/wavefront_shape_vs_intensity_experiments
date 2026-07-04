@@ -1,9 +1,25 @@
 """Small shared plotting helpers for the studies."""
 
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from shape_vs_intensity import config as C
+
+# The shared Computer-Modern figure style, shipped inside the package so it is
+# found by absolute path regardless of the working directory.
+STYLE_FILE = Path(__file__).resolve().parent / "shape_vs_intensity.mplstyle"
+
+
+def use_style():
+    """Apply the repo's shared matplotlib style to the current session.
+
+    Loads the ``shape_vs_intensity.mplstyle`` shipped with the installed
+    package, so every study script and notebook gets the same Computer-Modern
+    figure style with no ``matplotlibrc``-in-the-working-directory dependency.
+    """
+    plt.style.use(STYLE_FILE)
 
 
 def _confidence_quantiles(confidence, name):

@@ -39,6 +39,9 @@ paraboloid, defocused, observed at the **center** of the field of view.  At
 field center a paraboloid is aberration-free apart from defocus, so the
 reference wavefront is pure defocus (Noll Z4); we inject random Zernike
 perturbations, simulate a donut, and fit them back.  No `batoid` needed.
+The sign convention follows Rubin/WEP: the extra-focal side is
+`+defocalOffset`, represented here by positive Z4, and the intra-focal side is
+negative Z4.
 
 ## The danish patch (shape-only rendering)
 

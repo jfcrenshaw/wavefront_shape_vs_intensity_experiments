@@ -179,10 +179,14 @@ def make_factory(
 def make_reference(defocus=C.DEFOCUS_Z4):
     """Return the reference Zernike vector: pure defocus, padded to ``JMAX``.
 
+    Positive Z4 follows the repo-wide defocal convention: it is the
+    extra-focal (``+defocalOffset``) side.  The intra-focal side is the same
+    magnitude with the opposite sign.
+
     Parameters
     ----------
     defocus : float, optional
-        Z4 coefficient in meters.
+        Signed Z4 coefficient in meters.
 
     Returns
     -------
@@ -192,6 +196,29 @@ def make_reference(defocus=C.DEFOCUS_Z4):
     z_ref = np.zeros(C.JMAX + 1)
     z_ref[4] = defocus
     return z_ref
+
+
+def signed_defocus(defocus=C.DEFOCUS_Z4, defocal_type="extra"):
+    """Return the signed Z4 coefficient for an intra/extra focal side.
+
+    The convention matches Rubin/WEP: ``"extra"`` is the ``+defocalOffset``
+    side and is represented here by positive Z4; ``"intra"`` is the
+    ``-defocalOffset`` side and is represented by negative Z4.
+    """
+    aliases = {
+        "extra": C.EXTRA_DEFOCUS_SIGN,
+        "extrafocal": C.EXTRA_DEFOCUS_SIGN,
+        "extra-focal": C.EXTRA_DEFOCUS_SIGN,
+        "intra": C.INTRA_DEFOCUS_SIGN,
+        "intrafocal": C.INTRA_DEFOCUS_SIGN,
+        "intra-focal": C.INTRA_DEFOCUS_SIGN,
+    }
+    key = str(defocal_type).lower()
+    if key not in aliases:
+        raise ValueError(
+            f"defocal_type must be 'extra' or 'intra', got {defocal_type!r}"
+        )
+    return aliases[key] * abs(defocus)
 
 
 def fixed_diameter_defocus(
@@ -426,7 +453,14 @@ def monte_carlo(
     return np.concatenate(results, axis=0)
 
 
-def simulate_donut(defocus=C.DEFOCUS_Z4, zernikes=None, dx=0.0, dy=0.0, seed=1):
+def simulate_donut(
+    defocus=C.DEFOCUS_Z4,
+    zernikes=None,
+    dx=0.0,
+    dy=0.0,
+    seed=1,
+    defocal_type="extra",
+):
     """Simulate one extra-focal Rubin donut with the repo's danish simulator.
 
     Uses the same triangle-mesh forward model as the experiments: a defocused
@@ -435,10 +469,9 @@ def simulate_donut(defocus=C.DEFOCUS_Z4, zernikes=None, dx=0.0, dy=0.0, seed=1):
     characteristic shape on the donut, and a lateral shift ``(dx, dy)`` moves it
     off-centre (the image-plane signature of wavefront tilt).
 
-    The donut is rendered *extra*-focal (negative Z4).  An extra-focal image is
-    upright with respect to the pupil, so the pupil-plane schematics drawn by
-    ``map_circles`` line up with the donuts directly; the intra-focal image is
-    the same donut rotated 180 degrees, which would flip the odd-m modes.
+    By default the donut is rendered extra-focal using the repo-wide convention:
+    extra is the ``+defocalOffset`` side, represented here by positive Z4.
+    Pass ``defocal_type="intra"`` to render the negative-Z4 intra-focal side.
 
     Parameters
     ----------
@@ -451,6 +484,9 @@ def simulate_donut(defocus=C.DEFOCUS_Z4, zernikes=None, dx=0.0, dy=0.0, seed=1):
         Centroid offset in arcseconds (the tilt signature).
     seed : int, optional
         Photon-noise seed.
+    defocal_type : {"extra", "intra"}, optional
+        Which side of focus to render.  Extra is positive Z4; intra is negative
+        Z4.
 
     Returns
     -------
@@ -460,7 +496,7 @@ def simulate_donut(defocus=C.DEFOCUS_Z4, zernikes=None, dx=0.0, dy=0.0, seed=1):
     zernikes = zernikes or {}
     jmax = max([C.JMAX, *zernikes.keys()])
     z_ref = np.zeros(jmax + 1)
-    z_ref[4] = -defocus  # negative Z4 -> extra-focal, upright pupil mapping
+    z_ref[4] = signed_defocus(defocus, defocal_type)
     for noll, coeff in zernikes.items():
         z_ref[noll] += coeff
 

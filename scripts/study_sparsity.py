@@ -24,6 +24,9 @@ import matplotlib.pyplot as plt
 
 from shape_vs_intensity import config as C
 from shape_vs_intensity import sim
+from shape_vs_intensity.plotutils import use_style
+
+use_style()  # shared Computer-Modern figure style, independent of the cwd
 
 
 def relative_spread(z_terms, n_mc, seed, n_jobs):

@@ -1,0 +1,22 @@
+# Computer-Modern (LaTeX-matching) figure style for the shape-vs-intensity paper.
+# Apply with shape_vs_intensity.use_style() so scripts and notebooks share one
+# style regardless of the working directory.  (The backend is intentionally not
+# set here -- matplotlib forbids it in style files, and nothing calls plt.show;
+# the notebook selects its own inline backend.)
+
+# Fonts: match LaTeX's Computer Modern
+font.family: serif
+font.serif: cmr10
+mathtext.fontset: cm
+axes.formatter.use_mathtext: True  # needed with cmr10 for normal (non-math) text
+
+# Font sizes
+font.size: 9
+axes.titlesize: 9
+legend.fontsize: 9
+axes.labelsize: 9
+xtick.labelsize: 8
+ytick.labelsize: 8
+
+# Line width
+lines.linewidth: 1
