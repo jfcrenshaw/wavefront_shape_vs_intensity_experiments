@@ -1,10 +1,9 @@
 """Show what the simulated donuts look like.
 
-Renders a gallery of donuts for the toy Rubin paraboloid: the pure-defocus
-reference plus a few individual aberrations and one random dense draw, each in
-both full (shape + intensity) and shape-only rendering.  This is purely
-illustrative -- the single-mode amplitudes here are larger than the Monte-Carlo
-injection sigma so the shape/intensity effects are visible by eye.
+Renders a gallery of toy Rubin donuts, each a random draw of the dense-mode
+perturbations on top of the pure-defocus reference (full shape + intensity
+rendering).  This illustrates the typical Monte-Carlo variation at the
+injection sigma used in the experiments.
 
 Also renders a compact gallery showing how the donut changes across the
 central-obscuration and asymmetric-vignetting sweeps.
@@ -18,19 +17,9 @@ import matplotlib.pyplot as plt
 import config as C
 import sim
 
-# Illustrative single-mode amplitude (meters of wavefront), larger than the
-# Monte-Carlo INJECT_SIGMA so the effect on the donut is clearly visible.
-AMP = 0.4e-6
-
-# (label, Noll index to add on top of defocus).  None => defocus only.
-CASES = [
-    ("Defocus only", None),
-    ("+ Astigmatism (Z5)", 5),
-    ("+ Coma (Z7)", 7),
-    ("+ Trefoil (Z9)", 9),
-    ("+ Spherical (Z11)", 11),
-    ("+ 2nd coma (Z16)", 16),
-]
+# Layout of the random-donut gallery.
+N_DONUT_ROWS = 3
+N_DONUT_COLS = 4
 
 N_GEOMETRY_COLS = 5
 GEOMETRY_CROP_HALF = C.NPIX // 2
@@ -81,63 +70,41 @@ def plot_geometry_sweep():
         ax.set_yticks([])
     axes[0, 0].set_ylabel("central\nobscuration")
     axes[1, 0].set_ylabel("vignetting\nfraction")
-    fig.tight_layout()
-    out = C.FIGDIR / "geometry_sweep_donuts.png"
+    out = C.FIGDIR / "geometry_sweep_donuts.pdf"
     fig.savefig(out, dpi=500, bbox_inches="tight")
     print(f"wrote {out}")
     plt.close(fig)
 
 
-def main():
+def plot_random_donuts():
+    """Plot a grid of donuts, each a random draw of the dense-mode perturbations."""
     C.FIGDIR.mkdir(exist_ok=True)
     fac_full = sim.make_factory(surface_brightness=True)
-    fac_shape = sim.make_factory(surface_brightness=False)
     z_ref = sim.make_reference()
-
-    # One random dense draw, shown as the last row.
     rng = np.random.default_rng(C.SEED)
-    z_rand = z_ref.copy()
-    z_rand[C.DENSE_TERMS] += rng.normal(0.0, C.INJECT_SIGMA, size=len(C.DENSE_TERMS))
-    cases = [
-        (label, z_ref if idx is None else _add(z_ref, idx, AMP)) for label, idx in CASES
-    ]
-    cases.append(("Random dense draw", z_rand))
 
-    nrow = len(cases)
-    fig, axes = plt.subplots(nrow, 2, figsize=(5, 2.3 * nrow))
-    for row, (label, ab) in enumerate(cases):
-        for col, fac in enumerate([fac_full, fac_shape]):
-            img = crop(fac.image(aberrations=ab, npix=C.NPIX))
-            ax = axes[row, col]
-            ax.imshow(img, origin="lower", cmap="magma")  # per-image autoscale
-            ax.set_xticks([])
-            ax.set_yticks([])
-            if row == 0:
-                ax.set_title(
-                    "full (shape + intensity)" if col == 0 else "shape only",
-                    fontsize=11,
-                )
-            if col == 0:
-                ax.set_ylabel(label, fontsize=10)
+    fig, axes = plt.subplots(
+        N_DONUT_ROWS, N_DONUT_COLS, figsize=(2.3 * N_DONUT_COLS, 2.3 * N_DONUT_ROWS)
+    )
+    for ax in axes.flat:
+        z = z_ref.copy()
+        z[C.DENSE_TERMS] += rng.normal(0.0, C.INJECT_SIGMA, size=len(C.DENSE_TERMS))
+        img = crop(fac_full.image(aberrations=z, npix=C.NPIX))
+        ax.imshow(img, origin="lower")  # per-image autoscale
+        ax.set_xticks([])
+        ax.set_yticks([])
     fig.suptitle(
-        f"Toy Rubin donuts (defocus $Z_4$={C.DEFOCUS_Z4 * 1e6:.0f} $\\mu$m, "
-        f"aberration amp={AMP * 1e9:.0f} nm)",
+        f"Toy Rubin donuts, random dense draws "
+        f"(defocus $Z_4$={C.DEFOCUS_Z4 * 1e6:.0f} $\\mu$m, "
+        f"$\\sigma$={C.INJECT_SIGMA * 1e9:.0f} nm RMS/mode)",
         fontsize=12,
     )
-    fig.tight_layout()
-    out = C.FIGDIR / "example_donuts.png"
-    fig.savefig(out, dpi=150)
+    out = C.FIGDIR / "example_donuts.pdf"
+    fig.savefig(out, dpi=500, bbox_inches="tight")
     print(f"wrote {out}")
     plt.close(fig)
-    plot_geometry_sweep()
-
-
-def _add(z_ref, idx, amp):
-    """Return a copy of ``z_ref`` with ``amp`` added to Noll index ``idx``."""
-    z = z_ref.copy()
-    z[idx] += amp
-    return z
 
 
 if __name__ == "__main__":
+    plot_random_donuts()
     plot_geometry_sweep()
