@@ -1,0 +1,3 @@
+[submodule "danish"]
+	path = danish
+	url = https://github.com/jmeyers314/danish.git
