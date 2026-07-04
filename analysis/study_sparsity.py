@@ -75,7 +75,7 @@ def plot_estimates(data):
         [(C.SPARSE_TERMS, data["sparse_shape"], data["sparse_full"]),
          (C.DENSE_TERMS, data["dense_shape"], data["dense_full"])],
     ):
-        x = np.arange(len(terms))
+        x = np.array(terms)
         # Vertical 1-sigma lines centered on zero, offset for the two modes.
         ax.vlines(x - 0.12, -sig_shape, sig_shape, color="C3", lw=4,
                   alpha=0.8, label="shape only")
@@ -86,7 +86,7 @@ def plot_estimates(data):
             ylabel="Relative error",
             xticks=x,
             xticklabels=[f"Z{t}" for t in terms],
-            ylim=(-0.5, 0.5),
+            ylim=(-0.25, 0.25),
         )
 
     axes[0].legend(loc="upper right", frameon=False)
