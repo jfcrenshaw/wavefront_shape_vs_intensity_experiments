@@ -98,7 +98,8 @@ def make_reference(defocus=C.DEFOCUS_Z4):
     return z_ref
 
 
-def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0, return_images=False):
+def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0,
+            flux_norm="total", return_images=False):
     """Simulate one donut with known aberrations and fit them back.
 
     Parameters
@@ -135,13 +136,21 @@ def fit_one(z_true, z_terms, factory, *, z_ref=None, seed=0, return_images=False
         thx=0.0, thy=0.0, bkg_order=-1, seed=seed,
     )
 
-    # Equalize total flux across rendering modes.  The shape-only and full
-    # renderers normalize to different total sums, so we rescale the flux so
-    # that every truth donut carries the same total counts (C.FLUX).  This keeps
-    # the effective signal-to-noise identical between shape-only and full fits,
-    # which is essential for a fair comparison.
+    # Render a unit-flux donut so we can choose the flux scale explicitly.
     base = model.model(1.0, 0.0, 0.0, C.FWHM, z_true, sky_level=None)
-    flux = C.FLUX / base.sum()
+    if flux_norm == "total":
+        # Fixed total photons.  Both rendering modes carry the same total counts
+        # (C.FLUX), keeping shape-only vs full comparable at fixed geometry.
+        flux = C.FLUX / base.sum()
+    elif flux_norm == "per_pixel":
+        # Fixed mean counts per illuminated pixel, so the per-pixel SNR is the
+        # same regardless of how much pupil (and thus donut footprint) is left.
+        # a_eff is the participation-ratio pixel count (= geometric footprint
+        # for a flat-topped donut), a threshold-free measure of donut area.
+        a_eff = base.sum() ** 2 / np.square(base).sum()
+        flux = C.COUNTS_PER_PIX * a_eff / base.sum()
+    else:
+        raise ValueError(f"unknown flux_norm {flux_norm!r}")
 
     # Truth image: reference + injected perturbations, with tiny photon noise.
     truth = model.model(flux, 0.0, 0.0, C.FWHM, z_true, sky_level=C.SKY_LEVEL)
@@ -174,17 +183,18 @@ def _mc_chunk(payload):
     perturbation.  Defined at module level so it is picklable for
     multiprocessing.
     """
-    factory_kwargs, z_terms, z_trues, seeds = payload
+    factory_kwargs, z_terms, z_trues, seeds, flux_norm = payload
     factory = make_factory(**factory_kwargs)
     z_ref = make_reference()
     out = np.empty((len(z_trues), len(z_terms)))
     for i, (z_true, sd) in enumerate(zip(z_trues, seeds)):
-        out[i], _ = fit_one(z_true, z_terms, factory, z_ref=z_ref, seed=int(sd))
+        out[i], _ = fit_one(z_true, z_terms, factory, z_ref=z_ref,
+                            seed=int(sd), flux_norm=flux_norm)
     return out
 
 
 def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
-                inject_sigma=C.INJECT_SIGMA, n_jobs=1):
+                inject_sigma=C.INJECT_SIGMA, n_jobs=1, flux_norm="total"):
     """Run many random-perturbation trials and collect the fit residuals.
 
     Each trial draws an independent perturbation ``N(0, inject_sigma)`` for
@@ -208,6 +218,10 @@ def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
         Per-mode injection sigma, in meters.
     n_jobs : int, optional
         Number of worker processes.  1 (default) runs serially.
+    flux_norm : {"total", "per_pixel"}, optional
+        Flux normalization (see :func:`fit_one`).  Use "total" at fixed geometry
+        (e.g. the sparsity study) and "per_pixel" when sweeping pupil geometry
+        (obscuration, vignetting) so per-pixel SNR stays constant.
 
     Returns
     -------
@@ -220,13 +234,14 @@ def monte_carlo(z_terms, factory_kwargs, *, n_mc=C.N_MC, seed=C.SEED,
     seeds = rng.integers(1 << 30, size=n_mc)
 
     if n_jobs <= 1:
-        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds))
+        return _mc_chunk((factory_kwargs, z_terms, z_trues, seeds, flux_norm))
 
     # Split the trials into contiguous chunks, one per worker.  Contiguous
     # chunks + in-order concatenation preserve the trial ordering.
     n_jobs = min(n_jobs, n_mc)
     chunks = np.array_split(np.arange(n_mc), n_jobs)
-    payloads = [(factory_kwargs, z_terms, z_trues[c], seeds[c]) for c in chunks]
+    payloads = [(factory_kwargs, z_terms, z_trues[c], seeds[c], flux_norm)
+                for c in chunks]
     with ProcessPoolExecutor(max_workers=n_jobs) as ex:
         results = list(ex.map(_mc_chunk, payloads))
     return np.concatenate(results, axis=0)

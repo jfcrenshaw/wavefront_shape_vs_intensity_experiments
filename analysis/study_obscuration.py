@@ -46,7 +46,8 @@ def sweep(eps_values, n_mc, seed, n_jobs):
     for i, eps in enumerate(eps_values):
         r_in = eps * C.R_OUTER
         kwargs = dict(surface_brightness=True, zk_r_inner=r_in, pupil_r_inner=r_in)
-        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed, n_jobs=n_jobs)
+        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed,
+                              n_jobs=n_jobs, flux_norm="per_pixel")
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  eps={eps:.2f} done")
     return sig

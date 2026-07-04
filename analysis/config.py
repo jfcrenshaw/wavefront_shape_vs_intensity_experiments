@@ -39,8 +39,16 @@ WAVELENGTH = 750e-9       # meters (r-band-ish); used to quote errors in waves
 # High flux + tiny sky => noise is negligible for the fit.  It exists only to
 # keep the optimizer well behaved; the Monte-Carlo spread we plot comes from
 # drawing different true perturbations, not from photon noise.
-FLUX = 1e7                # total donut flux (photons)
+FLUX = 1e7                # total donut flux (photons); used by fixed-total-flux mode
 SKY_LEVEL = 10.0          # sky variance per pixel
+
+# Target mean counts per illuminated pixel, used when flux is normalized to hold
+# per-pixel signal-to-noise constant across pupil geometries (the obscuration and
+# vignetting sweeps).  Removing pupil area shrinks the donut footprint; at fixed
+# total flux that would raise the per-pixel SNR and artificially lower every
+# mode's error.  Fixing counts-per-pixel instead isolates the genuine
+# information change from that trivial brightness effect.
+COUNTS_PER_PIX = 2000.0
 
 # --- Monte-Carlo perturbations -------------------------------------------
 # Each fitted Zernike mode is drawn from N(0, INJECT_SIGMA).  The same sigma

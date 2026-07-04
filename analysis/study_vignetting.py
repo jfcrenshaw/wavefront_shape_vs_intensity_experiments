@@ -69,7 +69,8 @@ def sweep(pupil_radii, n_mc, seed, n_jobs):
         # illuminated outer edge shrinks.  Central obscuration held at Rubin.
         kwargs = dict(surface_brightness=True, zk_r_inner=C.R_INNER,
                       pupil_r_outer=pro, pupil_r_inner=C.R_INNER)
-        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed, n_jobs=n_jobs)
+        res = sim.monte_carlo(C.DENSE_TERMS, kwargs, n_mc=n_mc, seed=seed,
+                              n_jobs=n_jobs, flux_norm="per_pixel")
         sig[i] = res.std(axis=0) / C.INJECT_SIGMA
         print(f"  vignette fraction={vignette_fraction(pro):.2f} done")
     return sig
