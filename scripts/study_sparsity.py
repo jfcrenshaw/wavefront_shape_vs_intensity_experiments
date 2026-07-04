@@ -22,8 +22,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-import config as C
-import sim
+from shape_vs_intensity import config as C
+from shape_vs_intensity import sim
 
 
 def relative_spread(z_terms, n_mc, seed, n_jobs):

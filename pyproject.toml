@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shape_vs_intensity"
+version = "0.1.0"
+description = "Shape-vs-intensity wavefront estimation experiments (toy Rubin donuts)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "galsim",
+]
+
+# danish is not on PyPI: it is a git submodule pinned to v1.2.0 plus the
+# shape-only patch, and needs a C++ build.  Install it separately with
+#   pip install -e ./danish --no-deps
+# (see README).
+
+[tool.setuptools]
+packages = ["shape_vs_intensity"]

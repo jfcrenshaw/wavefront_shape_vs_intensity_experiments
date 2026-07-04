@@ -23,7 +23,7 @@ import numpy as np
 from scipy.optimize import least_squares
 import danish
 
-import config as C
+from shape_vs_intensity import config as C
 
 
 class VignettedTriangleFactory(danish.DonutTriangleFactory):
@@ -424,3 +424,57 @@ def monte_carlo(
     with ProcessPoolExecutor(max_workers=n_jobs) as ex:
         results = list(ex.map(_mc_chunk, payloads))
     return np.concatenate(results, axis=0)
+
+
+def simulate_donut(defocus=C.DEFOCUS_Z4, zernikes=None, dx=0.0, dy=0.0, seed=1):
+    """Simulate one extra-focal Rubin donut with the repo's danish simulator.
+
+    Uses the same triangle-mesh forward model as the experiments: a defocused
+    toy-Rubin paraboloid observed at field center, blurred by ``C.FWHM`` seeing
+    and given a little photon noise.  Extra Zernike aberrations imprint their
+    characteristic shape on the donut, and a lateral shift ``(dx, dy)`` moves it
+    off-centre (the image-plane signature of wavefront tilt).
+
+    The donut is rendered *extra*-focal (negative Z4).  An extra-focal image is
+    upright with respect to the pupil, so the pupil-plane schematics drawn by
+    ``map_circles`` line up with the donuts directly; the intra-focal image is
+    the same donut rotated 180 degrees, which would flip the odd-m modes.
+
+    Parameters
+    ----------
+    defocus : float, optional
+        Magnitude of the Z4 defocus, in meters (sets the donut diameter).
+    zernikes : dict, optional
+        Extra aberrations to add, as ``{noll_index: coefficient_in_meters}``
+        (e.g. ``{5: 7e-6}`` for astigmatism).
+    dx, dy : float, optional
+        Centroid offset in arcseconds (the tilt signature).
+    seed : int, optional
+        Photon-noise seed.
+
+    Returns
+    -------
+    ndarray
+        The simulated donut image, shape ``(C.NPIX, C.NPIX)``.
+    """
+    zernikes = zernikes or {}
+    jmax = max([C.JMAX, *zernikes.keys()])
+    z_ref = np.zeros(jmax + 1)
+    z_ref[4] = -defocus  # negative Z4 -> extra-focal, upright pupil mapping
+    for noll, coeff in zernikes.items():
+        z_ref[noll] += coeff
+
+    model = danish.SingleDonutModel(
+        make_factory(surface_brightness=True),
+        z_ref=z_ref,
+        z_terms=[],
+        thx=0.0,
+        thy=0.0,
+        bkg_order=-1,
+        seed=seed,
+        npix=C.NPIX,
+    )
+    # Normalize to a fixed total flux, then render with seeing + sky noise.
+    base = model.model(1.0, 0.0, 0.0, C.FWHM, [], sky_level=None)
+    flux = C.FLUX / base.sum()
+    return model.model(flux, dx, dy, C.FWHM, [], sky_level=C.SKY_LEVEL)

@@ -13,10 +13,12 @@ model, we measure how much of each Zernike mode lives in shape vs intensity.
 ## What's here
 
 ```text
-scripts/
+shape_vs_intensity/      installable package (pip install -e .) of shared code
   config.py            all physical constants and experiment knobs
   sim.py               the simulate-one-donut-and-fit-it-back engine
+                          (incl. simulate_donut for the notebook galleries)
   plotutils.py         shared plotting helpers (all-terms heatmap)
+scripts/                 entry-point study scripts (import the package)
   plot_donuts.py       -> figures/example_donuts.pdf, geometry_sweep_donuts.pdf
                           (galleries of simulated donuts)
   study_sparsity.py    -> figures/zk_estimates.pdf
@@ -24,9 +26,12 @@ scripts/
                           trefoil,quadpenta}.pdf, obscuration_all_terms.pdf
   study_vignetting.py  -> figures/vignetting_trend_{spherical,astigmatism,coma,
                           trefoil,quadpenta}.pdf, vignetting_all_terms.pdf
-danish/                danish as a git submodule, with our shape-only patch
-data/                  cached simulation outputs (*.npz; see "Running" below)
-figures/               output figures
+notebooks/               notebooks that import the package
+  plot_aberrations.ipynb -> figures/abberations_*.pdf (aberration schematics)
+pyproject.toml           package metadata + dependencies
+submodules/danish/       danish as a git submodule, with our shape-only patch
+data/                    cached simulation outputs (*.npz; see "Running" below)
+figures/                 output figures
 ```
 
 Everything uses one deliberately simple toy optical model: a single Rubin-sized
@@ -48,28 +53,34 @@ pixel covered by the pupil — a flat-topped donut with all intensity structure
 removed.  In triangle mode this is achieved by depositing each triangle's
 *projected* area (so flux/area = 1) instead of its pupil area.
 
-The patch lives on the `shape-only-patch` branch of the `danish/` submodule
-(one commit, ~10 lines in `danish/factory.py`).  The submodule is pinned to
+The patch lives on the `shape-only-patch` branch of the `submodules/danish/`
+submodule (one commit, ~10 lines in danish's `danish/factory.py`).  The submodule is pinned to
 danish release `v1.2.0` (commit `a4b680a`) plus that patch.
 
 ## Setup
 
 ```bash
 git clone --recurse-submodules <this repo>
-mamba activate shape_vs_intensity          # env with numpy/scipy/matplotlib/galsim
-pip install -e ./danish --no-deps          # builds the C++ extension; batoid not needed
+mamba activate shape_vs_intensity          # or any Python >= 3.10 environment
+pip install -e .                           # installs the package + numpy/scipy/matplotlib/galsim
+pip install -e ./submodules/danish --no-deps  # builds the C++ extension; batoid not needed
 ```
+
+`pip install -e .` puts the `shape_vs_intensity` package on the import path, so
+the study scripts and notebooks import it (`from shape_vs_intensity import sim`)
+from anywhere — no `sys.path` manipulation and no need to run from a particular
+directory.
 
 ## Running
 
-Run from the `scripts/` directory:
+The study scripts read all paths relative to the package, so you can run them
+from anywhere; from the repo root:
 
 ```bash
-cd scripts
-python study_sparsity.py      # add --quick for a fast, low-statistics preview
-python study_obscuration.py
-python study_vignetting.py
-python plot_donuts.py         # instant; renders the donut gallery
+python scripts/study_sparsity.py      # add --quick for a fast, low-statistics preview
+python scripts/study_obscuration.py
+python scripts/study_vignetting.py
+python scripts/plot_donuts.py         # instant; renders the donut gallery
 ```
 
 Simulation and plotting are separated so you can tweak a figure without paying
@@ -79,8 +90,8 @@ results to `data/<study>.npz`, and then draws the figures.  Once that cache
 exists, re-run with `--plot-only` to skip straight to the plotting:
 
 ```bash
-python study_obscuration.py             # simulate, cache to data/, then plot
-python study_obscuration.py --plot-only # instant: re-draw from data/obscuration.npz
+python scripts/study_obscuration.py             # simulate, cache to data/, then plot
+python scripts/study_obscuration.py --plot-only # instant: re-draw from data/obscuration.npz
 ```
 
 (`plot_donuts.py` renders directly and needs no cache — it does no Monte-Carlo.)

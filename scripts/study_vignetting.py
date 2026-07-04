@@ -29,9 +29,9 @@ import argparse
 
 import numpy as np
 
-import config as C
-import sim
-import plotutils
+from shape_vs_intensity import config as C
+from shape_vs_intensity import sim
+from shape_vs_intensity import plotutils
 
 
 def sweep(x_edges, n_mc, seed, n_jobs):
