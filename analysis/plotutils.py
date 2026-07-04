@@ -133,13 +133,12 @@ def all_terms_heatmap(
     reliable = _significant_effect_mask(data, residuals)
     shown = np.ma.masked_where(~reliable, data)
     cmap = plt.get_cmap("RdBu_r").copy()
-    cmap.set_bad("#f0f0f0")
+    cmap.set_bad("white")
 
-    fig, ax = plt.subplots(figsize=(8, 7))
+    fig, ax = plt.subplots(figsize=(3, 4))
     im = ax.imshow(
         shown,
         aspect="auto",
-        origin="lower",
         cmap=cmap,
         vmin=-vmax,
         vmax=vmax,
@@ -149,17 +148,14 @@ def all_terms_heatmap(
     ax.set_xticks(range(len(param_values)))
     ax.set_xticklabels([xtick_fmt.format(v) for v in param_values], rotation=45)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("Zernike (Noll index)")
-    ax.set_title(title)
+    ax.set_ylabel("Zernike Noll index")
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label(
-        "$\\log_{10}$(error / baseline)   "
+        "$\\log_{10}$(error / baseline)\n"
         "[red = worse, blue = better]\n"
-        "muted = not significant or too small"
     )
     muted = reliable.size - int(np.count_nonzero(reliable))
     print(f"  muted {muted}/{reliable.size} heatmap cells by MC thresholds")
-    fig.tight_layout()
-    fig.savefig(out, dpi=150)
+    fig.savefig(out, dpi=500, bbox_inches="tight")
     print(f"wrote {out}")
     plt.close(fig)

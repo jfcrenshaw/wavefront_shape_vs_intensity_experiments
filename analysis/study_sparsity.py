@@ -83,7 +83,7 @@ def simulate(n_mc, seed, n_jobs):
 
 def plot_estimates(data):
     """Make the two-panel sparse/dense comparison figure from saved arrays."""
-    fig, axes = plt.subplots(2, 1, figsize=(7, 5), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(7, 4.2), sharex=True, sharey=True)
     for ax, (terms, sig_shape, sig_full) in zip(
         axes,
         [
@@ -120,7 +120,9 @@ def plot_estimates(data):
         )
 
     axes[0].legend(loc="upper right", frameon=False)
-    axes[-1].set_xlabel("Zernike (Noll index)")
+    axes[-1].set_xlabel("Zernike Noll index")
+
+    fig.subplots_adjust(hspace=0.1)
 
     out = C.FIGDIR / "zk_estimates.pdf"
     fig.savefig(out, bbox_inches="tight")

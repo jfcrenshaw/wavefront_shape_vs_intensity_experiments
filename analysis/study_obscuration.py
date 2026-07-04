@@ -204,7 +204,7 @@ def main():
     plotutils.all_terms_heatmap(
         eps_values,
         sig,
-        xlabel=r"central obscuration $\varepsilon = R_{\rm inner}/R_{\rm outer}$",
+        xlabel=r"central obscuration $\varepsilon$",
         title="All modes vs central obscuration",
         out=C.FIGDIR / "all_terms_vs_obscuration.png",
         residuals=residuals,

@@ -167,7 +167,7 @@ def main():
     plotutils.all_terms_heatmap(
         frac,
         sig,
-        xlabel="vignetted fraction of pupil area",
+        xlabel=r"vignetted fraction $f_\mathrm{vig}$",
         title="All modes vs asymmetric vignetting (toy, field center)",
         out=C.FIGDIR / "all_terms_vs_vignetting.png",
         residuals=residuals,
