@@ -10,6 +10,8 @@ The guiding idea: a defocused donut carries wavefront information in two places
 By fitting the same donuts with a normal danish model and with a *shape-only*
 model, we measure how much of each Zernike mode lives in shape vs intensity.
 
+Note this repo is largely a GPT- and Claude-written refactor of previous (much messier!) code originally written by John Franklin Crenshaw.
+
 ## What's here
 
 ```text
