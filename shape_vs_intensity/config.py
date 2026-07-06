@@ -67,23 +67,6 @@ INJECT_SIGMA = 50e-9  # meters RMS per mode (~0.067 waves at 750 nm)
 N_MC = 50  # realizations per condition (raise for final figures)
 SEED = 20260704
 
-# --- Uncertainty-aware heatmap display -----------------------------------
-# All-mode heatmaps color the physical effect size, log10(error / fiducial).
-# Cells are muted unless the bootstrap confidence interval excludes zero and
-# the effect is at least this large.  A ratio of 1.20 means "show only changes
-# of roughly 20% or more" in either direction on the log scale.
-HEATMAP_BOOTSTRAP_CONFIDENCE = 0.95
-HEATMAP_MIN_ERROR_RATIO = 1.20
-HEATMAP_BOOTSTRAP_SAMPLES = 1000
-HEATMAP_BOOTSTRAP_SEED = SEED + 1
-
-# Line-plot error bars show bootstrap intervals on error / fiducial error.
-# A 68% interval is close to a 1-sigma visual error bar and keeps the figure
-# readable; raise to 0.95 for publication-style confidence intervals.
-LINE_PLOT_BOOTSTRAP_CONFIDENCE = 0.68
-LINE_PLOT_BOOTSTRAP_SAMPLES = 1000
-LINE_PLOT_BOOTSTRAP_SEED = SEED + 2
-
 # --- Highest Noll index we ever touch (defines z_ref padding length) ------
 JMAX = 22
 
@@ -102,10 +85,6 @@ DENSE_TERMS = list(range(4, JMAX + 1))
 #   m=4 tetrafoil   Z14, Z15
 #   m=5 pentafoil   Z20, Z21
 SPARSE_TERMS = [4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 20, 21]
-
-# --- Modes highlighted in the obscuration / vignetting studies ------------
-COMA_TERMS = [7, 8, 16, 17]  # primary (7,8) and secondary (16,17) coma
-SPHERICAL_TERMS = [11, 22]  # primary (11) and secondary (22) spherical
 
 
 def waves(x_meters):
