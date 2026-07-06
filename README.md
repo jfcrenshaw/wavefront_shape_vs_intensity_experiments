@@ -129,7 +129,7 @@ call `monte_carlo(..., n_jobs>1)` from an unguarded top-level context.
 - **Fixed donut diameter in the obscuration sweep.** Changing the central
   obscuration changes the annular-Zernike normalization.  To avoid changing the
   physical defocus in this toy setup, `study_obscuration.py` rescales the
-  reference `Z4` coefficient by `(1 - epsilon**2) / (1 - EPS_RUBIN**2)`, keeping
+  reference `Z4` coefficient by `(1 - epsilon**2) / (1 - EPS**2)`, keeping
   the outer donut diameter fixed while only the hole changes.
 - **Noise.** High flux + tiny sky, so photon noise is negligible; the
   Monte-Carlo spread we plot comes from drawing different true perturbations,

@@ -170,7 +170,7 @@ def plot_family(
     out : pathlib.Path
         Output file path.
     rubin_line : bool, optional
-        Draw a dotted vertical line at ``C.EPS_RUBIN`` labelled "Rubin".
+        Draw a dotted vertical line at ``C.EPS`` labelled "Rubin".
     logy : bool, optional
         Use a logarithmic y axis.
     """
@@ -198,7 +198,7 @@ def plot_family(
     if logy:
         ax.set_yscale("log")
     if rubin_line:
-        ax.axvline(C.EPS_RUBIN, color="k", ls=":", lw=1)
+        ax.axvline(C.EPS, color="k", ls=":", lw=1)
     ax.axhline(1.0, color="gray", lw=0.6)
     ax.set(
         xlabel=xlabel,

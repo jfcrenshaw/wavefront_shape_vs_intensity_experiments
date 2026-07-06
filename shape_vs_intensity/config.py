@@ -26,9 +26,11 @@ DATADIR = Path(__file__).resolve().parent.parent / "data"
 # --- Telescope geometry (Rubin-like) --------------------------------------
 # Entrance-pupil outer radius and the nominal central obscuration.
 R_OUTER = 4.18  # meters (Rubin primary mirror rim)
-EPS_RUBIN = 0.61  # Rubin central-obscuration fraction
-R_INNER = EPS_RUBIN * R_OUTER
+EPS = 0.61  # Rubin central-obscuration fraction
+R_INNER = EPS * R_OUTER
 FOCAL_LENGTH = 10.31  # meters
+FOCAL_RATIO = FOCAL_LENGTH / (2 * R_OUTER)
+DEFOCAL_OFFSET = 1.5e-3  # meters
 PIXEL_SCALE = 10e-6  # meters per pixel (10 micron)
 
 # --- Image + rendering ----------------------------------------------------
@@ -38,7 +40,8 @@ NRAD = 35  # radial rings in the triangle mesh (accuracy vs speed)
 # represented by positive Z4 in this toy Zernike model; intra-focal is -Z4.
 EXTRA_DEFOCUS_SIGN = +1
 INTRA_DEFOCUS_SIGN = -1
-DEFOCUS_Z4 = 24.3e-6  # positive extra-focal Z4 magnitude at EPS_RUBIN
+DEFOCUS_Z4 = DEFOCAL_OFFSET * (1 - EPS**2) / (16 * np.sqrt(3) * FOCAL_RATIO**2)
+R_DONUT_PIX = DEFOCAL_OFFSET / np.sqrt(4 * FOCAL_RATIO**2 - 1) / PIXEL_SCALE
 FWHM = 0.7  # atmospheric seeing FWHM, arcsec
 
 # --- Reference wavelength (for reporting only) ----------------------------
