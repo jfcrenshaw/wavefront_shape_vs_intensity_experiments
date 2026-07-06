@@ -262,10 +262,7 @@ def all_terms_heatmap(
     ax.set_xticklabels([xtick_fmt.format(v) for v in param_values], rotation=45)
 
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label(
-        "$\\log_{10}$(error / baseline)\n"
-        "[blue = better, red = worse]\n"
-    )
+    cbar.set_label("$\\log_{10}$(error / baseline)\n[blue = better, red = worse]\n")
 
     fig.savefig(out, dpi=500, bbox_inches="tight")
     print(f"wrote {out}")
