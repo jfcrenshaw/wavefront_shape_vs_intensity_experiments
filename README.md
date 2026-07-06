@@ -21,17 +21,19 @@ shape_vs_intensity/      installable package (pip install -e .) of shared code
 scripts/                 entry-point study scripts (import the package)
   plot_donuts.py       -> figures/example_donuts.pdf, geometry_sweep_donuts.pdf
                           (galleries of simulated donuts)
-  study_sparsity.py    -> figures/zk_estimates.pdf
+  study_sparsity.py    -> figures/dense_vs_sparse.pdf
   study_obscuration.py -> figures/obscuration_trend_{spherical,astigmatism,coma,
                           trefoil,quadpenta}.pdf, obscuration_all_terms.pdf
   study_vignetting.py  -> figures/vignetting_trend_{spherical,astigmatism,coma,
                           trefoil,quadpenta}.pdf, vignetting_all_terms.pdf
 notebooks/               notebooks that import the package
-  plot_aberrations.ipynb -> figures/abberations_*.pdf (aberration schematics)
+  plot_aberrations.ipynb -> figures/aberrations_*.pdf (aberration schematics)
+  plot_zernike_tables.ipynb -> figures/zernike_pyramid.pdf, zernike_nu_table.pdf
+  plot_by-eye-example.ipynb -> figures/by-eye-example.pdf
 pyproject.toml           package metadata + dependencies
 submodules/danish/       danish as a git submodule, with our shape-only patch
-data/                    cached simulation outputs (*.npz; see "Running" below)
-figures/                 output figures
+data/                    generated simulation caches (*.npz; see "Running" below)
+figures/                 generated output figures
 ```
 
 Everything uses one deliberately simple toy optical model: a single Rubin-sized
@@ -57,8 +59,8 @@ removed.  In triangle mode this is achieved by depositing each triangle's
 *projected* area (so flux/area = 1) instead of its pupil area.
 
 The patch lives on the `shape-only-patch` branch of the `submodules/danish/`
-submodule (one commit, ~10 lines in danish's `danish/factory.py`).  The submodule is pinned to
-danish release `v1.2.0` (commit `a4b680a`) plus that patch.
+submodule (one small commit in danish's `danish/factory.py`).  The submodule is
+pinned to danish release `v1.2.0` (commit `a4b680a`) plus that patch.
 
 ## Setup
 
@@ -138,5 +140,5 @@ call `monte_carlo(..., n_jobs>1)` from an unguarded top-level context.
   sigma, so residuals are comparable across modes and the plotted "relative
   error" is `residual / INJECT_SIGMA`.
 - **Sparse mode set.** `SPARSE_TERMS` in `config.py` lists the lowest-nu
-  detectable mode per azimuthal order. **This list should be confirmed against
-  the nu-classification tables in Sections 3-5 of the paper.**
+  detectable mode per azimuthal order, matching the nu-classification tables in
+  Sections 3-5 of the paper.

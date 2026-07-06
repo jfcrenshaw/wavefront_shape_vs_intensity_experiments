@@ -287,6 +287,9 @@ def fit_one(
         Reference Zernikes (defaults to pure defocus).
     seed : int, optional
         Seed for the (tiny) photon noise added to the truth image.
+    flux_norm : {"total", "per_pixel"}, optional
+        Flux normalization mode.  ``"total"`` fixes the total photon count;
+        ``"per_pixel"`` fixes the mean counts per illuminated pixel.
     return_images : bool, optional
         If True, also return the truth image and best-fit model image.
 

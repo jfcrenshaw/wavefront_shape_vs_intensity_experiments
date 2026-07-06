@@ -8,7 +8,7 @@ injection sigma used in the experiments.
 Also renders a compact gallery showing how the donut changes across the
 central-obscuration and asymmetric-vignetting sweeps.
 
-Run:  python plot_donuts.py
+Run:  python scripts/plot_donuts.py
 """
 
 import numpy as np

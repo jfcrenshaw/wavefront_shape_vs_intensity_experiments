@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .DS_Store
+.ruff_cache/
+.pytest_cache/
+.ipynb_checkpoints/
 
 # Editable-install / build artifacts (pip install -e .)
 *.egg-info/

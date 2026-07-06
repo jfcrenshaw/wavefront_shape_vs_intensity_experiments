@@ -225,8 +225,6 @@ def all_terms_heatmap(
     white means "unaffected", red means "degraded", and blue means "improved"
     relative to the first (baseline) parameter value.  This makes it easy to see
     at a glance which modes are and are not sensitive to the pupil geometry.
-    Cells are muted unless the bootstrap confidence interval excludes zero and
-    the effect exceeds the configured practical threshold.
 
     Parameters
     ----------

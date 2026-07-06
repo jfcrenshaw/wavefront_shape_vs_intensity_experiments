@@ -9,16 +9,15 @@ area so the outer donut diameter stays fixed; otherwise changing the annular
 normalization would also change the physical defocus in this toy model.  Errors
 are normalized to the epsilon = 0 case per mode.
 
-Reproduces ``coma_vs_obscuration.png`` and ``spherical_vs_obscuration.png``:
-increasing the obscuration degrades coma (especially secondary coma) but
-improves primary spherical up to epsilon ~ 0.5.
+Reproduces the ``obscuration_trend_*.pdf`` family plots and
+``obscuration_all_terms.pdf`` summary heatmap.
 
 The simulation and the plotting are separate: a normal run simulates, caches
 the results to ``data/obscuration.npz``, and then plots; ``--plot-only`` skips
 the simulation and re-draws the figures from that cache (for quick cosmetic
 tweaks).
 
-Run:  python study_obscuration.py [--n-mc N] [--quick] [--plot-only]
+Run:  python scripts/study_obscuration.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
@@ -51,7 +50,8 @@ def sweep(eps_values, n_mc, seed, n_jobs):
     sig : ndarray, shape (len(eps_values), len(DENSE_TERMS))
         Standard deviation of ``(z_fit - z_true) / INJECT_SIGMA`` per mode.
     residuals : ndarray, shape (len(eps_values), n_mc, len(DENSE_TERMS))
-        Raw Monte-Carlo residuals, cached so heatmaps can mask noisy cells.
+        Raw Monte-Carlo residuals, cached so line plots can draw bootstrap
+        error bars.
     """
     sig = np.empty((len(eps_values), len(C.DENSE_TERMS)))
     residuals = np.empty((len(eps_values), n_mc, len(C.DENSE_TERMS)))

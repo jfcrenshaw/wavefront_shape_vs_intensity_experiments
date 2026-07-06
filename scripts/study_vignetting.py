@@ -1,4 +1,4 @@
-"""Study 3 (new): impact of vignetting on wavefront estimation.
+"""Study 3: impact of vignetting on wavefront estimation.
 
 Vignetting removes light from part of the pupil.  Crucially it is *asymmetric*:
 a real vignette eats into the aperture from one side, leaving a nearly straight
@@ -22,7 +22,7 @@ the results to ``data/vignetting.npz``, and then plots; ``--plot-only`` skips
 the simulation and re-draws the figures from that cache (for quick cosmetic
 tweaks).
 
-Run:  python study_vignetting.py [--n-mc N] [--quick] [--plot-only]
+Run:  python scripts/study_vignetting.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
@@ -55,7 +55,8 @@ def sweep(x_edges, n_mc, seed, n_jobs):
     sig : ndarray, shape (len(x_edges), len(DENSE_TERMS))
         Standard deviation of ``(z_fit - z_true) / INJECT_SIGMA`` per mode.
     residuals : ndarray, shape (len(x_edges), n_mc, len(DENSE_TERMS))
-        Raw Monte-Carlo residuals, cached so heatmaps can mask noisy cells.
+        Raw Monte-Carlo residuals, cached so line plots can draw bootstrap
+        error bars.
     """
     sig = np.empty((len(x_edges), len(C.DENSE_TERMS)))
     residuals = np.empty((len(x_edges), n_mc, len(C.DENSE_TERMS)))

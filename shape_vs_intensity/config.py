@@ -70,6 +70,14 @@ INJECT_SIGMA = 50e-9  # meters RMS per mode (~0.067 waves at 750 nm)
 N_MC = 50  # realizations per condition (raise for final figures)
 SEED = 20260704
 
+# --- Bootstrap intervals for trend-plot error bars -----------------------
+# Line-plot error bars show bootstrap intervals on error / fiducial error.
+# A 68% interval is close to a 1-sigma visual error bar and keeps the figure
+# readable; raise to 0.95 for publication-style confidence intervals.
+LINE_PLOT_BOOTSTRAP_CONFIDENCE = 0.68
+LINE_PLOT_BOOTSTRAP_SAMPLES = 1000
+LINE_PLOT_BOOTSTRAP_SEED = SEED + 2
+
 # --- Highest Noll index we ever touch (defines z_ref padding length) ------
 JMAX = 22
 

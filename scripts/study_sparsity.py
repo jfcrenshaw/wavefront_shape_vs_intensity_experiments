@@ -1,20 +1,16 @@
 """Study 1: impact of Zernike sparsity (shape-only vs shape+intensity).
 
-Reproduces two figures from the paper:
+Reproduces a sparse-vs-dense comparison figure from the paper:
 
-* ``zk_estimates.pdf``    -- per-mode wavefront-estimation error for a *sparse*
+* ``dense_vs_sparse.pdf`` -- per-mode wavefront-estimation error for a *sparse*
   fit (lowest-nu detectable modes only) and a *dense* fit (all Noll 4-22),
   comparing shape-only against full shape+intensity information.
-* ``shape_degeneracy.pdf`` -- a concrete shape degeneracy: a shape-only best-fit
-  that matches the target donut's shape but has a wildly different intensity
-  pattern (approaching a caustic), illustrating why fitting high-order modes
-  from shape alone is dangerous.
 
 The simulation and the plotting are separate: a normal run simulates, caches
 the results to ``data/sparsity.npz``, and then plots; ``--plot-only`` skips the
 simulation and re-draws the figures from that cache (for quick cosmetic tweaks).
 
-Run:  python study_sparsity.py [--n-mc N] [--quick] [--plot-only]
+Run:  python scripts/study_sparsity.py [--n-mc N] [--quick] [--plot-only]
 """
 
 import argparse
